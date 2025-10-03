@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #define defaultMAX 4
-#define bitSize 8
+#define byteSize 8
 
 
 /*
@@ -30,6 +30,8 @@ void displayBits(SET);
 void invertSet(SET*);
 void swapBit(SET*, position, position);
 void displayChar(SET);
+void Union(SET, SET);
+void Intersection(SET, SET);
 // Array of SETS
 void initSetToArray(ArrSets*);
 void addSetToArray(ArrSets*);
@@ -47,6 +49,7 @@ void returnMenu(int count, int microseconds);
 void menu(ArrSets*);
 void manageSets(ArrSets*);
 void selectedSet(SET*);
+void discreteFunctions(ArrSets);
 
 
 
@@ -72,7 +75,7 @@ void initSet(SET *S){
 }
 
 void insertBit(SET *S, position p){
-    if(p < bitSize){
+    if(p < byteSize){
         SET mask = 1;
         *S |= (mask << p);
     }
@@ -110,7 +113,7 @@ void invertSet(SET *S){
 }
 
 void swapBit(SET *S, position p1, position p2){
-    if(p1 < bitSize && p2 < bitSize){
+    if(p1 < byteSize && p2 < byteSize){
         SET bit1 = (*S >> p1) & 1;
         SET bit2 = (*S >> p2) & 1;
         SET mask = 1;
@@ -120,14 +123,27 @@ void swapBit(SET *S, position p1, position p2){
 
 // DELETE
 void removeBit(SET *S, position p){
-    if(p < bitSize){
-        SET mask = 0;
-        *S &= ~(1 << p);
+    if(p < byteSize){
+        SET mask = 1;
+        *S &= ~(mask << p);
     }
 }
 
 
+// Union and Intersection
+void Union(SET A, SET B){
+    SET C = A | B;
+    displayBits(C);
+    cooldown(7, 500000);
+}
 
+void Intersection(SET A, SET B){
+    SET C = A & B;
+    displayBits(C);
+    cooldown(7, 500000);
+}
+
+// ARRAY OF SETS
 void initSetToArray(ArrSets *AS){
     if(AS->sets != NULL) free(AS->sets);
     AS->sets = (SET*)malloc(sizeof(SET) * defaultMAX);
@@ -210,7 +226,7 @@ void menu(ArrSets *ArrS){
     
     do{
         system("clear");
-        printf("Main Menu:\n1: Add Set\n2: Remove Set\n3: Display Sets\n4: Manage Sets\n0: Exit\nInsert Input [1-4]: ");
+        printf("Main Menu:\n1: Add Set\n2: Remove Set\n3: Display Sets\n4: Manage Sets\n5: Discrete Functions\n0: Exit\nInsert Input [1-4]: ");
         result = scanf("%d", &input);
         if(verifyInput(result)){
             switch(input){
@@ -230,6 +246,9 @@ void menu(ArrSets *ArrS){
                     system("clear");
                     manageSets(ArrS);
                     break;
+                case 5:
+                    system("clear");
+                    discreteFunctions(*ArrS);
             }
         }
     }while(input != 0);
@@ -308,4 +327,38 @@ void selectedSet(SET *S){
             }
         }
     }while(input != 0);
+}
+
+void discreteFunctions(ArrSets ArrS){
+    int input, result, A, B;
+    printf("1: Union\n2: Intersection\n0: Exit\nInput number [1-2]: ");
+    result = scanf("%d", &input);
+    if(verifyInput(result)){
+        switch(input){
+            case 1:
+                printf("TWO SETS NEEDED: A and B\n SET A: ");
+                result = scanf("%d", &A);
+                if(verifyInput(result)){
+                    printf("SET B: ");
+                    result = scanf("%d", &A);
+                    if(verifyInput(result)){
+                        // Need to be polished
+                        Union(ArrS.sets[A], ArrS.sets[B]);
+                    }
+                }
+                break;
+            case 2:
+                printf("TWO SETS NEEDED: A and B\n SET A: ");
+                result = scanf("%d", &A);
+                if(verifyInput(result)){
+                    printf("SET B: ");
+                    result = scanf("%d", &A);
+                    if(verifyInput(result)){
+                        // Need to be polished
+                        Intersection(ArrS.sets[A], ArrS.sets[B]);
+                    }
+                }
+                break;
+        }
+    }
 }
