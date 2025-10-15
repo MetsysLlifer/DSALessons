@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#define MAX 10
+#define MAX 5
 
 typedef struct{
     int data;
@@ -14,6 +14,8 @@ typedef struct{
 
 void init(StackArray*);
 void read(StackArray);
+void readTopToBottom(StackArray);
+void readBottomToTop(StackArray);
 bool isEmpty(StackArray);
 bool isFull(StackArray);
 ElementType top(StackArray);
@@ -35,6 +37,7 @@ int main(){
     push(&S, 5);
 
     read(S);
+    readBottomToTop(S);
 
     popAll(&S);
     read(S);
@@ -45,7 +48,7 @@ int main(){
 
 
 void init(StackArray *S){
-    S->top = -1;
+    S->top = MAX;
 }
 
 
@@ -64,6 +67,18 @@ void read(StackArray S){
 }
 
 
+void readBottomToTop(StackArray S){
+    if(isEmpty(S)){
+        printf("\nStack is Empty!\n");
+    }else{
+        for(int trav = MAX-1; trav >= 0; trav--){
+            printf("%d", S.Elements[trav].data);
+            printf("%s", (trav-1 >= 0? ", ": ".\n"));
+        }
+    }
+}
+
+
 void popAll(StackArray *S){
     while(!isEmpty(*S)){
         pop(S);
@@ -72,12 +87,12 @@ void popAll(StackArray *S){
 
 
 bool isEmpty(StackArray S){
-    return(S.top == -1)? true: false;
+    return(S.top == MAX)? true: false;
 }
 
 
 bool isFull(StackArray S){
-    return(S.top == MAX - 1)? true: false;
+    return(S.top == 0)? true: false;
 }
 
 ElementType top(StackArray S){
@@ -87,12 +102,12 @@ ElementType top(StackArray S){
 
 void pop(StackArray *S){
     if(!isEmpty(*S)){
-        S->top--;
+        ++S->top;
     }
 }
 
 void push(StackArray *S, int data){
     if(!isFull(*S)){
-        S->Elements[++S->top].data = data;
+        S->Elements[--S->top].data = data;
     }
 }
