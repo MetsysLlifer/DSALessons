@@ -22,7 +22,7 @@ void init(List*);
 void read(List, VirtualHeap);
 void insertFirst(List*, VirtualHeap*, Data);
 void insertLast(List*, VirtualHeap*, Data);
-void delete(List*, VirtualHeap*, Data);
+void Delete(List*, VirtualHeap*, Data);
 bool member(List, VirtualHeap, Data);
 int locate(List, VirtualHeap, Data);
 
@@ -44,7 +44,7 @@ int main(){
     insertFirst(&L, &VH, 3);
     insertLast(&L, &VH, 5);
 
-    delete(&L, &VH, 2);
+    Delete(&L, &VH, 2);
 
     read(L, VH);
 }
@@ -85,7 +85,7 @@ void insertLast(List *L, VirtualHeap *VH, Data data){
 }
 
 
-void delete(List *L, VirtualHeap *VH, Data data){
+void Delete(List *L, VirtualHeap *VH, Data data){
     int *trav;
     for(trav = L; *trav != -1 && VH->Nodes[*trav].elem.data != data; trav = &(VH->Nodes[*trav].link)){}
     if(*trav != -1){
