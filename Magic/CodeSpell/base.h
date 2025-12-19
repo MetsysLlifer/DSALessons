@@ -2,8 +2,11 @@
 #define BASE_H
 
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <unistd.h>
 
 #define MAX_AUX 4
@@ -34,6 +37,7 @@ typedef struct {
     double temperature;     // Temperature affecting the element and form state
     double intensity;       // Percentage intensity (0.0 to 1.0) representing concentration
     double dryness;         // Additional property to express dryness (0.0 = soaked, 1.0 = completely dry)
+    bool complete;
 } Spell;
 
 #endif

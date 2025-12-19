@@ -7,6 +7,7 @@ void cooldown(int count, int microsecond);
 void clearInputBuffer();
 int verifyInput(int);
 void returnMenu(int count, int microseconds);
+void inputFailReturnMenu(int count, int microseconds);
 
 
 #endif

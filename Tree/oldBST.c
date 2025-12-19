@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#define MAX 10
+#include <stdbool.h>
+#define MAX 15
 #define EMPTY -1
 
 typedef int Index, Set[MAX];
@@ -11,7 +12,8 @@ typedef struct{
 } Tree;
 
 void initTree(Tree*);
-void insert(Tree*, Index);
+void insert(Tree*, int);
+// void delete(Tree*, int);
 void display(Tree);
 void displayDetailed(Tree);
 
@@ -22,12 +24,19 @@ int main(){
     Tree arr;
     
     initTree(&arr);
-    insert(&arr, 1);
-    insert(&arr, 2);
-    insert(&arr, 3);
-    insert(&arr, 1);
+    insert(&arr, 14);
+    insert(&arr, 15);
     insert(&arr, 5);
+    insert(&arr, 10);
+    insert(&arr, 0);
+    insert(&arr, 18);
+    insert(&arr, 7);
+    insert(&arr, 12);
+    insert(&arr, 99);
+    insert(&arr, 1);
+    insert(&arr, 17);
     display(arr);
+    displayDetailed(arr);
 
     return 0;
 }
@@ -35,23 +44,20 @@ int main(){
 
 void initTree(Tree *arr){
     for(int trav = 0; trav < MAX; trav++){
-        arr->elements[trav] = -1;
+        arr->elements[trav] = EMPTY;
     }
     arr->last = EMPTY;
 }
 
-void insert(Tree *arr, Index key){
+void insert(Tree *arr, int key){
     if(arr->last == EMPTY){
         arr->elements[++arr->last] = key;
         return;
     }
 
     int current = 0; // start from the root tree
-    int parent; // keep track of the parent node during traversal
 
-    while(current <= arr->last && arr->elements[current] != EMPTY){
-        parent = current;
-
+    while(current <= arr->last && current < MAX && arr->elements[current] != EMPTY){
         if(key < arr->elements[current]){
             current = current * 2 + 1; // left child
         }else if(key > arr->elements[current]){
@@ -63,11 +69,14 @@ void insert(Tree *arr, Index key){
 
     // Insert key at current position
     // Update last if needed
-    arr->elements[current] = key;
-    if (current > arr->last) {
-        arr->last = current;
+    if(current < MAX){
+        arr->elements[current] = key;
+        if (current > arr->last) {
+            arr->last = current;
+        }
     }
 }
+
 
 
 void display(Tree arr){
@@ -82,11 +91,16 @@ void display(Tree arr){
 
 
 void displayDetailed(Tree arr){
-    for(int i = 0; i < MAX / 2; i++){
-        printf("Root [%d]: %d\n", i, arr.elements[i]);
+    char parent[12];
+    char child[12];
+    for(int posParent = 0; posParent < MAX / 2; posParent++){
+        sprintf(parent, "%d", arr.elements[posParent]); // converts int to string
+        printf("\nParent [%d]: %s\n", posParent, (arr.elements[posParent] != EMPTY) ? parent : "_");
         printf("\tchild/ren:\n\t\t");
-        printf("%d ", arr.elements[2*i+1]);
-        if(2*i+2 < MAX) printf("%d ", arr.elements[2*i+2]);
+        for(int posChild = 1; posChild < 3; posChild++){
+            sprintf(child, "%d", arr.elements[2*posParent+posChild]);
+            if(2*posParent+posChild < MAX) printf("%s ", (arr.elements[2*posParent+posChild] != EMPTY) ? child : "_");
+        }
         printf("\n");
     }
 }

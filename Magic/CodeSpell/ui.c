@@ -37,3 +37,12 @@ void returnMenu(int count, int microseconds){
         cooldown(count, microseconds);
     }
 }
+
+void inputFailReturnMenu(int count, int microseconds){
+    printf("\nError Input\nMagic Creation Incomplete\n");
+    printf("Returning back to the Menu.");
+    for(int i = 3; i >= 0; i--){
+        printf("%d", i);
+        cooldown(count, microseconds);
+    }
+}

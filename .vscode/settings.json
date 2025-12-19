@@ -1,6 +1,12 @@
 {
     "files.associations": {
         "stdio.h": "c",
-        "CursorBased.C": "cpp"
+        "CursorBased.C": "cpp",
+        "bitset": "c",
+        "unordered_map": "c",
+        "string.h": "c",
+        "stdbool.h": "c",
+        "math.h": "c",
+        "_stdio.h": "c"
     }
 }
