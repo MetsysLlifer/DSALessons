@@ -13,6 +13,8 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define WALL_COUNT 3
+#define INVENTORY_CAPACITY 5
+
 
 // --- STRUCTS ---
 typedef struct {
@@ -31,6 +33,11 @@ typedef struct {
     Color color;
 } Entity;
 
+typedef struct {
+    Entity items[INVENTORY_CAPACITY];
+    int count;
+} Inventory;
+
 // --- FUNCTION PROTOTYPES ---
 // Physics now takes 'inputDirection' so it works for Players (Keyboard) AND NPCs (AI)
 void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, int wallCount);
@@ -40,4 +47,9 @@ void EnforceWallConstraints(Entity* entities, int count, Rectangle* walls, int w
 void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount);
 void DisplayEntityStatus(Entity *e, bool isVisible);
 void DrawSpeedSlider(float* value, int x, int y);
+// NEW INVENTORY FUNCTIONS
+void InitInventory(Inventory* inv);
+bool AddItem(Inventory* inv, Entity item);
+Entity DropItem(Inventory* inv, int index); // Returns the item so we can put it back in the world
+void DrawInventory(Inventory* inv, int x, int y);
 #endif
