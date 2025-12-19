@@ -16,18 +16,28 @@
 
 // --- STRUCTS ---
 typedef struct {
+    // Physics Properties
     Vector2 position;
     Vector2 velocity;
-    float size;
-    float speed;
-    float steering_factor;
+    float mass;           // New: Determines inertia (1.0 = light, 50.0 = heavy)
+    float friction;       // New: How fast it stops (e.g. 10.0)
+    float size;           // Collision size
+    
+    // Movement Properties
+    float maxSpeed;       // Replaces "speed"
+    float moveForce;      // Replaces "steering_factor" (The engine power)
+    
+    // Visuals
     Color color;
-} Character;
+} Entity;
 
 // --- FUNCTION PROTOTYPES ---
-// We promise these functions exist in other .c files
-void UpdatePlayer(Character* player, Rectangle* walls, int wallCount);
-void DrawGame(Character player, Rectangle* walls, int wallCount);
-void DisplayPlayerStatus(Character *player, bool isVisible);
-void DrawSpeedSlider(float* speed, int x, int y);
+// Physics now takes 'inputDirection' so it works for Players (Keyboard) AND NPCs (AI)
+void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, int wallCount);
+void ResolveEntityCollisions(Entity* entities, int count);
+// This forces entities out of walls if they get pushed in
+void EnforceWallConstraints(Entity* entities, int count, Rectangle* walls, int wallCount);
+void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount);
+void DisplayEntityStatus(Entity *e, bool isVisible);
+void DrawSpeedSlider(float* value, int x, int y);
 #endif

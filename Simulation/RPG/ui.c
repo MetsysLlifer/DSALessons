@@ -49,14 +49,11 @@ void DrawSpeedSlider(float* speed, int x, int y) {
 }
 
 // Future stats placeholder: (Additional stats to be added)
-void DisplayPlayerStatus(Character *player, bool isVisible) {
+void DisplayEntityStatus(Entity *entity, bool isVisible) {
     if (!isVisible) return; // If toggle is off, stop immediately
 
     // 1. Setup the Panel
-    int panelX = 10;
-    int panelY = 50;
-    int width = 200;
-    int height = 180;
+    int panelX = 10, panelY = 50, width = 200, height = 180;
 
     // Draw a semi-transparent black box
     DrawRectangle(panelX, panelY, width, height, Fade(BLACK, 0.8f));
@@ -65,17 +62,19 @@ void DisplayPlayerStatus(Character *player, bool isVisible) {
     // 2. Draw the Stats
     int textX = panelX + 10;
     int startY = panelY + 10;
-    int lineSpacing = 20;
 
     DrawText("PLAYER STATUS", textX, startY, 20, WHITE);
     
     // Display Position (Formatted to 1 decimal place)
-    DrawText(TextFormat("Pos X: %.1f", player->position.x), textX, startY + 40, 10, WHITE);
-    DrawText(TextFormat("Pos Y: %.1f", player->position.y), textX, startY + 40 + lineSpacing, 10, WHITE);
+    DrawText("ENTITY STATUS", textX, startY, 20, YELLOW);
+    DrawText(TextFormat("Pos: %.0f, %.0f", entity->position.x, entity->position.y), textX, startY + 30, 10, WHITE);
     
     // Display Speed/Velocity
-    DrawText(TextFormat("Velocity: %.1f, %.1f", player->velocity.x, player->velocity.y), textX, startY + 90, 10, GREEN);
+    DrawText(TextFormat("Vel: %.1f, %.1f", entity->velocity.x, entity->velocity.y), textX, startY + 50, 10, GREEN);
 
     // Modify player's speed
-    DrawSpeedSlider(&player->speed, textX, startY + 120 + lineSpacing);
+    DrawText(TextFormat("Mass: %.1f kg", entity->mass), textX, startY + 70, 10, GRAY);
+
+    // Slider modifies maxSpeed
+    DrawSpeedSlider(&entity->maxSpeed, textX, startY + 120);
 }
