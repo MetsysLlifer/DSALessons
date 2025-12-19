@@ -66,11 +66,29 @@ int main() {
         Vector2 mouseWorld = GetScreenToWorld2D(mouseScreen, camera);
 
         // -- INPUT HANDLING (done in Main) ---
+
+        // A. Movement
         Vector2 playerInput = {0.0f, 0.0f};
         if (IsKeyDown(KEY_A) != IsKeyDown(KEY_D)) playerInput.x = (IsKeyDown(KEY_A)) ? -1 : 1;
         if (IsKeyDown(KEY_W) != IsKeyDown(KEY_S)) playerInput.y = (IsKeyDown(KEY_W)) ? -1 : 1;
 
-        // --- PICKUP LOGIC (Mouse Hover) ---
+        // B. Inventory Hotkeys (1-5)
+        // We loop through the capacity. KEY_ONE + 0 = '1', KEY_ONE + 1 = '2', etc.
+        for (int i = 0; i < INVENTORY_CAPACITY; i++) {
+            if (IsKeyPressed(KEY_ONE + i)) {
+                // Only select if the slot actually has an item
+                if (i < inventory.count) {
+                    // Toggle Logic: If already selected, deselect. Else select.
+                    if (inventory.selectedSlot == i) {
+                        inventory.selectedSlot = -1;
+                    } else {
+                        inventory.selectedSlot = i;
+                    }
+                }
+            }
+        }
+
+        // --- HOVER LOGIC ---
         int hoveredEntityIndex = -1; // -1 means nothing hovered
 
         // Check only World Objects (Skip Player at index 0)
@@ -88,6 +106,7 @@ int main() {
             }
         }
 
+        // --- PICKUP LOGIC (Press E) ---
         // Interaction: Press E to pickup THIS specific one
         if (IsKeyPressed(KEY_E) && hoveredEntityIndex != -1) {
             // Try to add to inventory
@@ -103,7 +122,7 @@ int main() {
         }
 
         // --- DROP LOGIC (Mouse Aim) ---
-        if (IsKeyPressed(KEY_Q) && inventory.count > 0) {
+        if (IsKeyPressed(KEY_Q) && inventory.selectedSlot != -1) {
             // Calculate Drop Position
             Vector2 dropPos = mouseWorld;
             
@@ -118,8 +137,8 @@ int main() {
                 dropPos = Vector2Add(player->position, Vector2Scale(dir, PICKUP_RANGE));
             }
 
-            // Perform Drop
-            Entity droppedItem = DropItem(&inventory, inventory.count - 1);
+            // DROP THE SELECTED ITEM
+            Entity droppedItem = DropItem(&inventory, inventory.selectedSlot);
             droppedItem.position = dropPos;
             droppedItem.velocity = (Vector2){0,0}; // Reset speed
 
@@ -128,6 +147,9 @@ int main() {
                 entities[entityCount] = droppedItem;
                 entityCount++;
             }
+
+            // Unselect after dropping so we don't accidentally drop the next item
+            inventory.selectedSlot = -1;
         }
 
         // UPDATE PHYSICS

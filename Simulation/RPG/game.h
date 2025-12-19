@@ -36,6 +36,7 @@ typedef struct {
 typedef struct {
     Entity items[INVENTORY_CAPACITY];
     int count;
+    int selectedSlot; // NEW: Tracks which slot is highlighted (-1 = None)
 } Inventory;
 
 // --- FUNCTION PROTOTYPES ---

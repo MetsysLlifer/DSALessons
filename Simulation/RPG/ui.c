@@ -48,6 +48,57 @@ void DrawSpeedSlider(float* speed, int x, int y) {
     DrawText(TextFormat("%.0f", *speed), x + SLIDER_WIDTH + 10, y + 5, 10, WHITE);
 }
 
+void DrawInventory(Inventory* inv, int x, int y) {
+    int slotSize = 40;
+    int padding = 5;
+    Vector2 mouse = GetMousePosition();
+
+    DrawText("INVENTORY (Click to Select)", x, y - 20, 10, DARKGRAY);
+
+    for (int i = 0; i < INVENTORY_CAPACITY; i++) {
+        Rectangle slot = { x + (i * (slotSize + padding)), y, slotSize, slotSize };
+        
+        // 1. Handle Selection Logic (Clicking a slot)
+        bool isMouseOver = CheckCollisionPointRec(mouse, slot);
+        
+        if (isMouseOver && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            // Toggle logic: If clicking the same slot, unselect it. Otherwise select new one.
+            if (inv->selectedSlot == i) {
+                inv->selectedSlot = -1;
+            } else {
+                // Only select if there is actually an item there
+                if (i < inv->count) {
+                    inv->selectedSlot = i;
+                }
+            }
+        }
+
+        // 2. Draw Slot Visuals
+        // If this is the selected slot, draw it Green, otherwise Gray
+        Color borderColor = (inv->selectedSlot == i) ? GREEN : DARKGRAY;
+        int borderThick = (inv->selectedSlot == i) ? 3 : 2;
+
+        DrawRectangleRec(slot, Fade(LIGHTGRAY, 0.5f));
+        DrawRectangleLinesEx(slot, borderThick, borderColor);
+
+        // 3. Draw Item inside the slot (Static View)
+        if (i < inv->count) {
+            DrawCircle(slot.x + slotSize/2, slot.y + slotSize/2, 10, inv->items[i].color);
+            DrawText(TextFormat("%.0f", inv->items[i].mass), slot.x + 2, slot.y + 2, 10, BLACK);
+        }
+    }
+    
+    // 4. Draw "Held" Item (Follows Mouse)
+    // If we have a selected slot AND it's a valid item
+    if (inv->selectedSlot != -1 && inv->selectedSlot < inv->count) {
+        // Draw the item slightly offset from cursor to look like we are holding it
+        DrawCircle(mouse.x + 10, mouse.y + 10, 12, inv->items[inv->selectedSlot].color);
+        DrawCircleLines(mouse.x + 10, mouse.y + 10, 13, BLACK); // Outline
+    }
+    
+    DrawText("Press 'E' to Pickup, Select + 'Q' to Drop", x, y + slotSize + 5, 10, DARKGRAY);
+}
+
 // Future stats placeholder: (Additional stats to be added)
 void DisplayEntityStatus(Entity *entity, bool isVisible) {
     if (!isVisible) return; // If toggle is off, stop immediately
@@ -78,3 +129,4 @@ void DisplayEntityStatus(Entity *entity, bool isVisible) {
     // Slider modifies maxSpeed
     DrawSpeedSlider(&entity->maxSpeed, textX, startY + 120);
 }
+
