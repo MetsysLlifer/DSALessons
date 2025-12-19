@@ -74,17 +74,42 @@ void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, in
     }
 }
 
-void ResolveEntityCollisions(Entity* entities, int count) {
+// UPDATED: Now accepts ParticleSystem pointer
+void ResolveEntityCollisions(Entity* entities, int count, ParticleSystem* ps) {
     for (int i = 0; i < count; i++) {
+        if (!entities[i].isActive) continue; 
+
         for (int j = i + 1; j < count; j++) {
+            if (!entities[j].isActive) continue;
+
             Entity* a = &entities[i];
             Entity* b = &entities[j];
 
-            // 1. Check Intersection
             if (CheckCollisionCircles(a->position, a->size, b->position, b->size)) {
                 
-                // --- STEP A: POSITIONAL CORRECTION (Un-stick them) ---
-                Vector2 diff = Vector2Subtract(a->position, b->position);
+                // --- MAGIC FUSION LOGIC ---
+                if (a->isSpell && b->isSpell) {
+                    
+                    // 1. JUICE: Spawn Explosion!
+                    // We mix the colors of the two spells for the explosion
+                    Color explosionColor = Fade(a->color, 0.8f);
+                    SpawnExplosion(ps, a->position, explosionColor);
+
+                    // 2. Calculate Fusion Data
+                    Spell fusedSpell = FuseSpellData(a->spellData, b->spellData);
+                    
+                    // 3. Transform A into the new Fused Spell
+                    Vector2 midVel = Vector2Scale(Vector2Add(a->velocity, b->velocity), 0.5f);
+                    *a = CreateSpellEntity(fusedSpell, a->position, midVel);
+                    
+                    // 4. Mark B as "Dead"
+                    b->isActive = false; 
+                    
+                    continue; 
+                }
+                
+                // ... (Keep Standard Physics bounce code here) ...
+                 Vector2 diff = Vector2Subtract(a->position, b->position);
                 float distance = Vector2Length(diff);
                 if (distance == 0) { distance = 0.1f; diff = (Vector2){0.1f, 0.0f}; }
 
@@ -92,39 +117,20 @@ void ResolveEntityCollisions(Entity* entities, int count) {
                 Vector2 normal = Vector2Normalize(diff);
                 Vector2 pushVector = Vector2Scale(normal, overlap);
 
-                // Mass ratios for pushing
                 float totalMass = a->mass + b->mass;
                 float ratioA = b->mass / totalMass; 
                 float ratioB = a->mass / totalMass;
 
-                // Move them apart
                 a->position = Vector2Add(a->position, Vector2Scale(pushVector, ratioA));
                 b->position = Vector2Subtract(b->position, Vector2Scale(pushVector, ratioB));
-
-
-                // --- STEP B: MOMENTUM RESOLUTION (The Bounce) ---
-                // This makes them bounce off each other based on Mass
                 
-                // 1. Calculate Relative Velocity
                 Vector2 relVelocity = Vector2Subtract(a->velocity, b->velocity);
-                
-                // 2. Calculate velocity along the normal (Dot Product)
                 float velocityAlongNormal = Vector2DotProduct(relVelocity, normal);
-
-                // If objects are already moving apart, do nothing
                 if (velocityAlongNormal > 0) continue;
-
-                // 3. Calculate "Restitution" (Bounciness)
-                // 0.0 = Mud (No bounce), 1.0 = Superball (Full bounce)
                 float e = 0.5f; 
-
-                // 4. Calculate Impulse Scalar (The magic physics formula)
-                float j = -(1 + e) * velocityAlongNormal;
-                j /= (1 / a->mass + 1 / b->mass);
-
-                // 5. Apply Impulse to velocities
-                Vector2 impulse = Vector2Scale(normal, j);
-                
+                float imp = -(1 + e) * velocityAlongNormal;
+                imp /= (1 / a->mass + 1 / b->mass);
+                Vector2 impulse = Vector2Scale(normal, imp);
                 a->velocity = Vector2Add(a->velocity, Vector2Scale(impulse, 1 / a->mass));
                 b->velocity = Vector2Subtract(b->velocity, Vector2Scale(impulse, 1 / b->mass));
             }

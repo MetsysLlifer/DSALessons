@@ -18,28 +18,32 @@ int main() {
     // Initialize Player (Index 0)
     entities[entityCount++] = (Entity){
         .position = {100, 100}, .velocity = {0,0}, 
-        .mass = 1.0f, .friction = 500.0f, .size = 32.0f, 
+        .mass = 1.0f, .friction = 10.0f, .size = 32.0f, 
         .maxSpeed = 600.0f, .moveForce = 3000.0f, 
-        .color = MAROON
+        .color = MAROON,
+        .isSpell = false, .isActive = true
     };
 
-    // Initialize Rock (Index 1)
-    // entities[1] = (Entity){
-    //     .position = {400, 400}, .velocity = {0,0}, 
-    //     .mass = 2.0f, .friction = 100.0f, .size = 40.0f,
-    //     .maxSpeed = 0.0f, .moveForce = 0.0f, 
-    //     .color = DARKGRAY
-    // };
-    // 2. Add some Rocks
-    entities[entityCount++] = (Entity){ {300, 300}, {0,0}, 20.0f, 5.0f, 25.0f, 0, 0, DARKGRAY };
-    entities[entityCount++] = (Entity){ {500, 200}, {0,0}, 10.0f, 5.0f, 15.0f, 0, 0, BLUE };
-    entities[entityCount++] = (Entity){ {400, 500}, {0,0}, 50.0f, 5.0f, 35.0f, 0, 0, GOLD };
+    // --- PARTICLE SYSTEM SETUP ---
+    ParticleSystem particleSystem;
+    InitParticles(&particleSystem);
+
+    // --- SPELL TEMPLATES ---
+    Spell fireSpell = { {"Fire"}, ELEMENT_PLASMA, FORM_PLASMA, 100.0, 0.5, 0.9, true };
+    Spell rockSpell = { {"Rock"}, ELEMENT_SOLID, FORM_SOLID, 20.0, 0.8, 1.0, true };
+
+    // Initialize Rock (Index 1) using CreateSpellEntity to make it compatible
+    // entities[1] = ... (Old manual init)
+    
+    // 2. Add some Rocks/Spells
+    entities[entityCount++] = CreateSpellEntity(rockSpell, (Vector2){300, 300}, (Vector2){0,0});
+    entities[entityCount++] = CreateSpellEntity(fireSpell, (Vector2){500, 200}, (Vector2){0,0});
 
     // Create handy pointers so you don't have to type entities[0] everywhere
     Entity* player = &entities[0];
 
     // --- INVENTORY SETUP ---
-    Inventory inventory;
+    Inventory inventory = { 0 };
     InitInventory(&inventory);
 
     // --- BASIC WALLS ---
@@ -66,19 +70,32 @@ int main() {
         Vector2 mouseWorld = GetScreenToWorld2D(mouseScreen, camera);
 
         // -- INPUT HANDLING (done in Main) ---
-
-        // A. Movement
         Vector2 playerInput = {0.0f, 0.0f};
         if (IsKeyDown(KEY_A) != IsKeyDown(KEY_D)) playerInput.x = (IsKeyDown(KEY_A)) ? -1 : 1;
         if (IsKeyDown(KEY_W) != IsKeyDown(KEY_S)) playerInput.y = (IsKeyDown(KEY_W)) ? -1 : 1;
 
-        // B. Inventory Hotkeys (1-5)
-        // We loop through the capacity. KEY_ONE + 0 = '1', KEY_ONE + 1 = '2', etc.
+        // --- MAGIC INPUT (Shoot Spells) ---
+        if (IsKeyPressed(KEY_F) && entityCount < MAX_ENTITIES) {
+            Vector2 dir = Vector2Normalize(Vector2Subtract(mouseWorld, player->position));
+            Vector2 vel = Vector2Scale(dir, 600.0f); 
+            Vector2 spawn = Vector2Add(player->position, Vector2Scale(dir, 40));
+            entities[entityCount++] = CreateSpellEntity(fireSpell, spawn, vel);
+        }
+        if (IsKeyPressed(KEY_R) && entityCount < MAX_ENTITIES) {
+            Vector2 dir = Vector2Normalize(Vector2Subtract(mouseWorld, player->position));
+            Vector2 vel = Vector2Scale(dir, 400.0f);
+            Vector2 spawn = Vector2Add(player->position, Vector2Scale(dir, 40));
+            entities[entityCount++] = CreateSpellEntity(rockSpell, spawn, vel);
+        }
+
+        // --- INVENTORY HOTKEYS (1-5) ---
         for (int i = 0; i < INVENTORY_CAPACITY; i++) {
-            if (IsKeyPressed(KEY_ONE + i)) {
-                // Only select if the slot actually has an item
+            // Check Number Row (1-5) AND Numpad (1-5)
+            if (IsKeyPressed(KEY_ONE + i) || IsKeyPressed(KEY_KP_1 + i)) {
+                
+                // Only allow selecting if the slot has an item
                 if (i < inventory.count) {
-                    // Toggle Logic: If already selected, deselect. Else select.
+                    // Toggle: If selecting the same slot, unselect it.
                     if (inventory.selectedSlot == i) {
                         inventory.selectedSlot = -1;
                     } else {
@@ -88,11 +105,14 @@ int main() {
             }
         }
 
-        // --- HOVER LOGIC ---
+        // --- PICKUP LOGIC (Mouse Hover) ---
         int hoveredEntityIndex = -1; // -1 means nothing hovered
 
         // Check only World Objects (Skip Player at index 0)
         for (int i = 1; i < entityCount; i++) {
+            // Skip inactive (dead/fused) entities
+            if (!entities[i].isActive) continue;
+
             // A. Is Mouse touching this entity?
             bool mouseOnEntity = CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size);
             
@@ -106,7 +126,6 @@ int main() {
             }
         }
 
-        // --- PICKUP LOGIC (Press E) ---
         // Interaction: Press E to pickup THIS specific one
         if (IsKeyPressed(KEY_E) && hoveredEntityIndex != -1) {
             // Try to add to inventory
@@ -141,6 +160,7 @@ int main() {
             Entity droppedItem = DropItem(&inventory, inventory.selectedSlot);
             droppedItem.position = dropPos;
             droppedItem.velocity = (Vector2){0,0}; // Reset speed
+            droppedItem.isActive = true; // Make sure it's alive when dropped
 
             // Add back to world
             if (entityCount < MAX_ENTITIES) {
@@ -149,7 +169,8 @@ int main() {
             }
 
             // Unselect after dropping so we don't accidentally drop the next item
-            inventory.selectedSlot = -1;
+            // inventory.selectedSlot = -1;
+            // Note: DropItem inside inventory.c now handles resetting selectedSlot to -1 automatically
         }
 
         // UPDATE PHYSICS
@@ -157,14 +178,19 @@ int main() {
 
         // Update all other entities
         for(int i=1; i<entityCount; i++) {
-            UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
+            // Check if active so we don't move dead spells
+            if(entities[i].isActive) {
+                UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
+            }
         }
 
-        // Solve Entity vs Entity Collisions
-        // We pass the whole array so it can check everyone against everyone
-        ResolveEntityCollisions(entities, entityCount);
+        // UPDATED: Pass the particle system to the collision resolver
+        ResolveEntityCollisions(entities, entityCount, &particleSystem);
         // Resolve Wall overlap (If Rock was pushed into Wall, push it back out)
         EnforceWallConstraints(entities, entityCount, walls, WALL_COUNT);
+
+        // NEW: Update Particles
+        UpdateParticles(&particleSystem);
         
         camera.target = player->position;
         // Check for Toggle Input (Tab Key)
@@ -178,6 +204,9 @@ int main() {
             BeginMode2D(camera);
                 DrawGame(entities, entityCount, walls, WALL_COUNT);
 
+                // NEW: Draw Particles (Draw them after game entities so they appear on top)
+                DrawParticles(&particleSystem);
+                
                 // Highlight the object when it is hovered
                 if (hoveredEntityIndex != -1) {
                     Entity e = entities[hoveredEntityIndex];
@@ -190,6 +219,10 @@ int main() {
             // B. DRAW UI (Everything here stays fixed on screen)
             DrawInventory(&inventory, SCREEN_WIDTH/2 -100, SCREEN_HEIGHT - 80);
             
+            // Instructions for Magic
+            DrawText("WASD: Move | F: Fire | R: Rock | E: Pickup | Q: Drop", 10, 10, 20, DARKGRAY);
+            DrawText("Shoot Fire (F) at Rock (R) to FUSE them!", 10, 35, 20, MAROON);
+
             DisplayEntityStatus(player, showStatus);
 
             // Debug

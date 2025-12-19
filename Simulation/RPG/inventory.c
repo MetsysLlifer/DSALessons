@@ -7,6 +7,8 @@ void InitInventory(Inventory* inv) {
     // Clear memory to avoid garbage data
     for(int i=0; i<INVENTORY_CAPACITY; i++) {
         inv->items[i].size = 0; // Mark as empty
+        inv->items[i].mass = 0;
+        inv->items[i].color = BLANK;
     }
 }
 
@@ -31,6 +33,8 @@ Entity DropItem(Inventory* inv, int index) {
         }
         
         inv->count--;
+        // If we dropped the item, unselect the slot immediately
+        inv->selectedSlot = -1;
     }
     return itemToDrop;
 }

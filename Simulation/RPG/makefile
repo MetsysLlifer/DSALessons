@@ -7,7 +7,7 @@ LDFLAGS = -L/opt/homebrew/lib -lraylib -framework IOKit -framework Cocoa -framew
 TARGET = game
 
 # List of object files needed
-OBJS = main.o physics.o graphics.o ui.o inventory.o
+OBJS = main.o physics.o graphics.o ui.o inventory.o magic.o particles.o
 
 # 1. Default Rule: Build the target
 all: $(TARGET)
