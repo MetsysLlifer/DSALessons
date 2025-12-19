@@ -4,13 +4,14 @@ That creates the data and tells the other files what to do.
 */
 #include "game.h"
 #define MAX_ENTITIES 100
+#define PICKUP_RANGE 100.0f // How far you can reach
 
 int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Top Down Collision");
     SetTargetFPS(60); // 128 is fine as well
 
     // --- DATA INITIALIZATION ---
-        // We create an array of entities as the "Source of Truth"
+    // We create an array of entities as the "Source of Truth"
     Entity entities[MAX_ENTITIES];
     int entityCount = 0;
 
@@ -58,92 +59,122 @@ int main() {
     bool showStatus = false;
 
     // --- GAME LOOP ---
-while (!WindowShouldClose()) {
-    // -- INPUT HANDLING (done in Main) ---
-    Vector2 playerInput = {0.0f, 0.0f};
-    if (IsKeyDown(KEY_A) != IsKeyDown(KEY_D)) playerInput.x = (IsKeyDown(KEY_A)) ? -1 : 1;
-    if (IsKeyDown(KEY_W) != IsKeyDown(KEY_S)) playerInput.y = (IsKeyDown(KEY_W)) ? -1 : 1;
+    while (!WindowShouldClose()) {
+        // --- MOUSE CALCULATION ---
+        // Vital: Convert Screen Mouse (pixels) to World Mouse (game coordinates)
+        Vector2 mouseScreen = GetMousePosition();
+        Vector2 mouseWorld = GetScreenToWorld2D(mouseScreen, camera);
 
-    // --- PICKUP LOGIC (Press E) ---
-    if (IsKeyPressed(KEY_E)) {
-        // Check all entities (Skip index 0 because that is player)
+        // -- INPUT HANDLING (done in Main) ---
+        Vector2 playerInput = {0.0f, 0.0f};
+        if (IsKeyDown(KEY_A) != IsKeyDown(KEY_D)) playerInput.x = (IsKeyDown(KEY_A)) ? -1 : 1;
+        if (IsKeyDown(KEY_W) != IsKeyDown(KEY_S)) playerInput.y = (IsKeyDown(KEY_W)) ? -1 : 1;
+
+        // --- PICKUP LOGIC (Mouse Hover) ---
+        int hoveredEntityIndex = -1; // -1 means nothing hovered
+
+        // Check only World Objects (Skip Player at index 0)
         for (int i = 1; i < entityCount; i++) {
-            float dist = Vector2Distance(player->position, entities[i].position);
+            // A. Is Mouse touching this entity?
+            bool mouseOnEntity = CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size);
+            
+            // B. Is Player close enough to reach it?
+            float distToPlayer = Vector2Distance(player->position, entities[i].position);
+            bool inRange = distToPlayer < PICKUP_RANGE;
 
-            // CALCULATE REQUIRED DISTANCE DYNAMICALLY
-            // Player Radius + Item Radius + Extra Reach (20 pixels)
-            float pickupRange = player->size + entities[i].size + 20.0f;
-
-            // If close enough (pickupRange)
-            if (dist < pickupRange) {
-                // Try to add to inventory
-                if (AddItem(&inventory, entities[i])) {
-                    
-                    // REMOVE FROM WORLD (Swap with last item)
-                    entities[i] = entities[entityCount - 1];
-                    entityCount--; 
-                    
-                    // Decrement i so we don't skip the item we just swapped in
-                    i--; 
-                }
-                break; // Only pick up one item at a time
+            if (mouseOnEntity && inRange) {
+                hoveredEntityIndex = i; // Found one!
+                break; // Stop looking, we found the one we are hovering
             }
         }
-    }
 
-    // --- DROP LOGIC (Press Q) ---
-    if (IsKeyPressed(KEY_Q) && inventory.count > 0) {
-        // Take item out of inventory (Drop the last one picked up)
-        Entity droppedItem = DropItem(&inventory, inventory.count - 1);
-        
-        // Set position to Player's position (plus a little offset so we don't get stuck)
-        droppedItem.position = Vector2Add(player->position, (Vector2){40, 0});
-        droppedItem.velocity = (Vector2){0,0}; // Reset speed
-
-        // Add back to world
-        if (entityCount < MAX_ENTITIES) {
-            entities[entityCount] = droppedItem;
-            entityCount++;
+        // Interaction: Press E to pickup THIS specific one
+        if (IsKeyPressed(KEY_E) && hoveredEntityIndex != -1) {
+            // Try to add to inventory
+            if (AddItem(&inventory, entities[hoveredEntityIndex])) {
+                
+                // REMOVE FROM WORLD (Swap with last item)
+                entities[hoveredEntityIndex] = entities[entityCount - 1];
+                entityCount--; 
+                
+                // Reset hover since item is gone
+                hoveredEntityIndex = -1;
+            }
         }
-    }
 
-    // UPDATE PHYSICS
-    UpdateEntityPhysics(player, playerInput, walls, WALL_COUNT);
+        // --- DROP LOGIC (Mouse Aim) ---
+        if (IsKeyPressed(KEY_Q) && inventory.count > 0) {
+            // Calculate Drop Position
+            Vector2 dropPos = mouseWorld;
+            
+            // Clamp Drop Position to Range
+            // If mouse is too far, drop it at the max reach limit
+            float distToMouse = Vector2Distance(player->position, mouseWorld);
+            
+            if (distToMouse > PICKUP_RANGE) {
+                // Math: Normalize vector to mouse, then multiply by range
+                Vector2 dir = Vector2Subtract(mouseWorld, player->position);
+                dir = Vector2Normalize(dir);
+                dropPos = Vector2Add(player->position, Vector2Scale(dir, PICKUP_RANGE));
+            }
 
-    // Update all other entities
-    for(int i=1; i<entityCount; i++) {
-        UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
-    }
+            // Perform Drop
+            Entity droppedItem = DropItem(&inventory, inventory.count - 1);
+            droppedItem.position = dropPos;
+            droppedItem.velocity = (Vector2){0,0}; // Reset speed
 
-    // Solve Entity vs Entity Collisions
-    // We pass the whole array so it can check everyone against everyone
-    ResolveEntityCollisions(entities, entityCount);
-    // Resolve Wall overlap (If Rock was pushed into Wall, push it back out)
-    EnforceWallConstraints(entities, entityCount, walls, WALL_COUNT);
-    
-    camera.target = player->position;
-    // Check for Toggle Input (Tab Key)
-    if (IsKeyPressed(KEY_TAB)) showStatus = !showStatus; // Flip true to false, false to true
+            // Add back to world
+            if (entityCount < MAX_ENTITIES) {
+                entities[entityCount] = droppedItem;
+                entityCount++;
+            }
+        }
 
-    // --- DRAW ---
+        // UPDATE PHYSICS
+        UpdateEntityPhysics(player, playerInput, walls, WALL_COUNT);
+
+        // Update all other entities
+        for(int i=1; i<entityCount; i++) {
+            UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
+        }
+
+        // Solve Entity vs Entity Collisions
+        // We pass the whole array so it can check everyone against everyone
+        ResolveEntityCollisions(entities, entityCount);
+        // Resolve Wall overlap (If Rock was pushed into Wall, push it back out)
+        EnforceWallConstraints(entities, entityCount, walls, WALL_COUNT);
+        
+        camera.target = player->position;
+        // Check for Toggle Input (Tab Key)
+        if (IsKeyPressed(KEY_TAB)) showStatus = !showStatus; // Flip true to false, false to true
+
+        // --- DRAW ---
         BeginDrawing();
             ClearBackground(RAYWHITE);
 
             // A. DRAW WORLD (Everything inside here moves with camera)
             BeginMode2D(camera);
                 DrawGame(entities, entityCount, walls, WALL_COUNT);
+
+                // Highlight the object when it is hovered
+                if (hoveredEntityIndex != -1) {
+                    Entity e = entities[hoveredEntityIndex];
+                    DrawCircleLines(e.position.x, e.position.y, e.size + 5, YELLOW);
+                    DrawText("E", e.position.x - 5, e.position.y - 5, 20, YELLOW);
+                }
+
             EndMode2D(); // Stop applying camera transform
 
             // B. DRAW UI (Everything here stays fixed on screen)
             DrawInventory(&inventory, SCREEN_WIDTH/2 -100, SCREEN_HEIGHT - 80);
-
+            
             DisplayEntityStatus(player, showStatus);
 
             // Debug
             DrawFPS(SCREEN_WIDTH - 80, 10);
 
         EndDrawing();
-}
+    }
 
     CloseWindow();
     return 0;
