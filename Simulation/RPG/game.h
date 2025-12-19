@@ -28,6 +28,6 @@ typedef struct {
 // We promise these functions exist in other .c files
 void UpdatePlayer(Character* player, Rectangle* walls, int wallCount);
 void DrawGame(Character player, Rectangle* walls, int wallCount);
-void updateUI();
-
+void DisplayPlayerStatus(Character *player, bool isVisible);
+void DrawSpeedSlider(float* speed, int x, int y);
 #endif
