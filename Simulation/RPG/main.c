@@ -18,7 +18,7 @@ int main() {
     // Initialize Player (Index 0)
     entities[entityCount++] = (Entity){
         .position = {100, 100}, .velocity = {0,0}, 
-        .mass = 1.0f, .friction = 10.0f, .size = 32.0f, 
+        .mass = 1.0f, .friction = 300.0f, .size = 32.0f, 
         .maxSpeed = 600.0f, .moveForce = 3000.0f, 
         .color = MAROON,
         .isSpell = false, .isActive = true
