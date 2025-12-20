@@ -3,7 +3,7 @@ ACTS AS THE "MANAGER"
 That creates the data and tells the other files what to do.
 */
 #include "game.h"
-#define MAX_ENTITIES 100
+#define MAX_ENTITIES 1000
 #define PICKUP_RANGE 100.0f // How far you can reach
 
 int main() {
@@ -206,7 +206,7 @@ int main() {
 
                 // NEW: Draw Particles (Draw them after game entities so they appear on top)
                 DrawParticles(&particleSystem);
-                
+
                 // Highlight the object when it is hovered
                 if (hoveredEntityIndex != -1) {
                     Entity e = entities[hoveredEntityIndex];
@@ -218,6 +218,9 @@ int main() {
 
             // B. DRAW UI (Everything here stays fixed on screen)
             DrawInventory(&inventory, SCREEN_WIDTH/2 -100, SCREEN_HEIGHT - 80);
+
+            DrawText(TextFormat("Inv Count: %d", inventory.count), 10, 100, 20, BLACK);
+            DrawText(TextFormat("Selected Slot: %d", inventory.selectedSlot), 10, 130, 20, (inventory.selectedSlot == -1) ? RED : GREEN);
             
             // Instructions for Magic
             DrawText("WASD: Move | F: Fire | R: Rock | E: Pickup | Q: Drop", 10, 10, 20, DARKGRAY);
@@ -227,6 +230,21 @@ int main() {
 
             // Debug
             DrawFPS(SCREEN_WIDTH - 80, 10);
+
+            // ---------------------------------------------------------
+            // NEW: DRAW TOOLTIP (Must be done in UI space)
+            // ---------------------------------------------------------
+            if (hoveredEntityIndex != -1) {
+                // 1. Get the hovered entity
+                Entity* e = &entities[hoveredEntityIndex];
+                
+                // 2. Convert its World Position (Game Map) to Screen Position (Pixel on Monitor)
+                Vector2 screenPos = GetWorldToScreen2D(e->position, camera);
+
+                // 3. Draw the tooltip at that screen position
+                DrawEntityTooltip(e, (int)screenPos.x, (int)screenPos.y);
+            }
+            // ---------------------------------------------------------
 
         EndDrawing();
     }

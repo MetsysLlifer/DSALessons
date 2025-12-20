@@ -8,6 +8,66 @@
 #define MIN_SPEED 0.0f
 #define MAX_SPEED 2000.0f // Max pixels per second
 
+// --- Helper Arrays for Enums ---
+const char* ElementNames[] = { "Solid", "Liquid", "Gas", "Plasma", "Unknown" };
+const char* FormNames[]    = { "Solid", "Liquid", "Gas", "Plasma", "Unknown" };
+
+// NEW: Tooltip Function
+void DrawEntityTooltip(Entity* e, int x, int y) {
+    // 1. Define Box Size & Position
+    int width = 200;
+    int height = 0; // Calculated dynamically
+    int startX = x + 20; // Offset slightly to right of mouse/entity
+    int startY = y - 20;
+    int padding = 10;
+    int lineSize = 20;
+
+    // Calculate height based on what we are showing
+    if (e->isSpell) height = 180; // Needs more space for magic stats
+    else height = 80;             // Just physics stats
+
+    // 2. Draw Background Panel
+    DrawRectangle(startX, startY, width, height, Fade(BLACK, 0.9f));
+    DrawRectangleLines(startX, startY, width, height, WHITE);
+
+    // 3. Draw Stats
+    int textX = startX + padding;
+    int textY = startY + padding;
+
+    // -- HEADER --
+    if (e->isSpell) {
+        DrawText(e->spellData.name, textX, textY, 20, YELLOW);
+    } else {
+        DrawText("Physics Object", textX, textY, 20, LIGHTGRAY);
+    }
+    textY += 25;
+
+    // -- BASIC STATS --
+    DrawText(TextFormat("Mass: %.1f kg", e->mass), textX, textY, 10, WHITE);
+    textY += 15;
+    DrawText(TextFormat("Vel: %.0f", Vector2Length(e->velocity)), textX, textY, 10, WHITE);
+    textY += 20; // Extra Gap
+
+    // -- MAGIC STATS (Only if it's a spell) --
+    if (e->isSpell) {
+        DrawText("----------------", textX, textY, 10, GRAY);
+        textY += 15;
+        
+        // Element & Form
+        DrawText(TextFormat("Type: %s", ElementNames[e->spellData.type]), textX, textY, 10, SKYBLUE);
+        textY += 15;
+        DrawText(TextFormat("Form: %s", FormNames[e->spellData.form]), textX, textY, 10, SKYBLUE);
+        textY += 15;
+
+        // Properties
+        DrawText(TextFormat("Temp: %.1f C", e->spellData.temperature), textX, textY, 10, (e->spellData.temperature > 50)? RED : BLUE);
+        textY += 15;
+        DrawText(TextFormat("Intensity: %.2f", e->spellData.intensity), textX, textY, 10, WHITE);
+        textY += 15;
+        DrawText(TextFormat("Dryness: %.2f", e->spellData.dryness), textX, textY, 10, ORANGE);
+    }
+}
+
 // Can modify the player's speed
 void DrawSpeedSlider(float* speed, int x, int y) {
     // 1. Logic: Handle Mouse Input

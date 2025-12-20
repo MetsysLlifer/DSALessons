@@ -116,4 +116,7 @@ void InitParticles(ParticleSystem* ps);
 void UpdateParticles(ParticleSystem* ps);
 void DrawParticles(ParticleSystem* ps);
 void SpawnExplosion(ParticleSystem* ps, Vector2 position, Color color);
+
+// NEW: Tooltip function
+void DrawEntityTooltip(Entity* e, int x, int y);
 #endif
