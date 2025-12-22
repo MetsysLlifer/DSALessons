@@ -1,6 +1,5 @@
 #include "game.h"
 
-// ... (Color and Raw Element creation - Same as before) ...
 Color GetElementColor(ElementType type) {
     switch (type) {
         case ELEM_EARTH: return ORANGE;      
@@ -31,31 +30,105 @@ Entity CreateRawElement(ElementType type, Vector2 pos) {
     return e;
 }
 
+// --- FIXED FUNCTION ---
 void ApplyElementPhysics(Entity* e) {
+    e->moveForce = 2000.0f; // Default steering force
+    
     switch (e->spellData.core) {
         case ELEM_FIRE:
-            e->mass = 1.0f;
-            e->maxSpeed = 1000.0f;
-            e->friction = 1.0f;
+            e->mass = 1.0f; 
+            e->maxSpeed = 1000.0f; 
+            e->friction = 1.0f; 
             break;
+            
         case ELEM_EARTH:
-            e->mass = 50.0f;
-            e->maxSpeed = 500.0f;
-            e->friction = 10.0f;
+            e->mass = 50.0f; 
+            e->maxSpeed = 500.0f; 
+            e->friction = 10.0f; 
             break;
+            
         case ELEM_WATER:
-            e->mass = 10.0f;
-            e->maxSpeed = 700.0f;
-            e->friction = 2.0f;
+            e->mass = 10.0f; 
+            e->maxSpeed = 700.0f; 
+            e->friction = 2.0f; 
             break;
+            
         case ELEM_AIR:
+            e->mass = 5.0f; 
+            e->maxSpeed = 900.0f; 
+            e->friction = 0.5f; 
+            break;
+            
         default:
-            e->mass = 5.0f;
-            e->maxSpeed = 900.0f;
-            e->friction = 0.5f;
+            // Fallback for NONE or other types
+            e->mass = 20.0f; 
+            e->maxSpeed = 600.0f; 
+            e->friction = 5.0f;
             break;
     }
-    e->moveForce = 2000.0f;
+}
+
+// --- SHARED GEOMETRY (Granular Physics) ---
+int GetSpellChunkCount(Entity* e) {
+    if (e->state == STATE_RAW) return 3;
+    if (e->state == STATE_PROJECTILE) {
+        if (e->spellData.core == ELEM_EARTH) return 8;
+        if (e->spellData.core == ELEM_FIRE) return 12;
+        if (e->spellData.core == ELEM_WATER) return 8;
+        if (e->spellData.core == ELEM_AIR) return 6;
+        if (e->spellData.behavior == SPELL_MIDAS) return 8;
+        if (e->spellData.behavior == SPELL_VOID) return 1; 
+    }
+    return 1; 
+}
+
+Vector2 GetSpellChunkPos(Entity* e, int index, float time) {
+    Vector2 center = e->position;
+    
+    if (e->state == STATE_RAW) {
+        float offX = sinf(index * 99.0f) * 8.0f;
+        float offY = cosf(index * 13.0f) * 8.0f;
+        return Vector2Add(center, (Vector2){offX, offY});
+    }
+    
+    if (e->state == STATE_PROJECTILE) {
+        if (e->spellData.core == ELEM_EARTH || e->spellData.behavior == SPELL_MIDAS) {
+            float angle = (time * 1.0f) + (index * (PI*2/8));
+            float dist = e->size * 0.8f + sinf(index * 5.0f) * 5.0f;
+            return Vector2Add(center, (Vector2){cosf(angle)*dist, sinf(angle)*dist});
+        }
+        if (e->spellData.core == ELEM_FIRE) {
+            float jitterX = sinf(time * 20.0f + index) * 15.0f;
+            float jitterY = cosf(time * 20.0f + index * 2) * 15.0f;
+            return Vector2Add(center, (Vector2){jitterX, jitterY});
+        }
+        if (e->spellData.core == ELEM_WATER) {
+            Vector2 trail = Vector2Scale(Vector2Normalize(e->velocity), -1.0f);
+            if(Vector2Length(e->velocity) < 1) trail = (Vector2){0,1};
+            float dist = index * 6.0f;
+            float wave = sinf(time * 15.0f + index) * 6.0f;
+            Vector2 perp = { -trail.y, trail.x };
+            Vector2 pos = Vector2Add(center, Vector2Scale(trail, dist));
+            return Vector2Add(pos, Vector2Scale(perp, wave));
+        }
+        if (e->spellData.core == ELEM_AIR) {
+            float angle = time * 8.0f + (index * (PI*2/6));
+            Vector2 orb = { cosf(angle) * e->size, sinf(angle) * e->size };
+            return Vector2Add(center, orb);
+        }
+    }
+    return center;
+}
+
+float GetSpellChunkSize(Entity* e, int index) {
+    if (e->state == STATE_RAW) return e->size * 0.6f;
+    if (e->state == STATE_PROJECTILE) {
+        if (e->spellData.core == ELEM_EARTH) return e->size * 0.5f;
+        if (e->spellData.core == ELEM_FIRE) return 6.0f;
+        if (e->spellData.core == ELEM_WATER) return e->size * (1.0f - (float)index/8.0f);
+        if (e->spellData.core == ELEM_AIR) return 4.0f;
+    }
+    return e->size;
 }
 
 void RecalculateStats(Spell* s) {
@@ -70,14 +143,12 @@ void RecalculateStats(Spell* s) {
         if(s->aux[i] == ELEM_WATER) water++;
     }
     
-    // --- AI ---
     if (air >= 2) { s->aiType = AI_HOMING; s->hasHoming = true; }
     if (air >= 1 && fire >= 1) s->aiType = AI_PREDICT; 
     if (water >= 2) s->aiType = AI_ORBIT;       
     if (earth >= 2 && fire >= 1) s->aiType = AI_ERRATIC; 
     if (water >= 1 && air >= 1 && earth >= 1) s->aiType = AI_SWARM;
     
-    // --- POWERS ---
     if (s->core == ELEM_EARTH) {
         if (air >= 2) s->isTeleport = true; 
         else if (earth >= 2) s->behavior = SPELL_PETRIFY;

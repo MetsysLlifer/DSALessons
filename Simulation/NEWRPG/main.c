@@ -11,13 +11,12 @@ void CleanupEntities(Entity* entities, int* count) {
 }
 
 int main() {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Fixed Physics");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Granular Magic Physics");
     SetTargetFPS(60); 
 
     Entity entities[MAX_ENTITIES];
     int entityCount = 0;
 
-    // Player (Index 0)
     entities[entityCount++] = (Entity){
         .position = {100, 100}, .velocity = {0,0}, 
         .mass = 1.0f, .friction = 10.0f, .size = 30.0f, 
@@ -27,7 +26,6 @@ int main() {
     Entity* player = &entities[0];
     Player playerData = { .selectedElement = ELEM_EARTH, .mana = 100, .maxMana = 100 };
     
-    // Init discovery
     for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = false;
 
     Inventory inventory = { 0 }; InitInventory(&inventory);
@@ -46,15 +44,11 @@ int main() {
 
         if (!showCompendium) {
             bool isSelecting = IsKeyDown(KEY_TAB);
-            
-            // 1. PLACE
             if (!isSelecting && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && entityCount < MAX_ENTITIES) {
                 if (playerData.selectedElement != ELEM_NONE) {
                     entities[entityCount++] = CreateRawElement(playerData.selectedElement, mouseWorld);
                 }
             }
-            
-            // 2. FUSE (Launch)
             if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                 for (int i = 1; i < entityCount; i++) {
                     if (entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
@@ -65,8 +59,6 @@ int main() {
                     }
                 }
             }
-            
-            // 3. TELEPORT
             if (IsKeyPressed(KEY_T)) {
                 for (int i = 1; i < entityCount; i++) {
                     if (entities[i].isActive && entities[i].spellData.isTeleport) {
@@ -78,7 +70,6 @@ int main() {
                 }
             }
             
-            // 4. INVENTORY
             int hovered = -1;
             for (int i = 1; i < entityCount; i++) {
                 if (!entities[i].isActive || entities[i].isHeld) continue;
@@ -98,7 +89,6 @@ int main() {
                 if(entityCount < MAX_ENTITIES) entities[entityCount++] = dropped;
             }
 
-            // --- UPDATES ---
             Vector2 input = {0,0};
             if (IsKeyDown(KEY_W)) input.y -= 1;
             if (IsKeyDown(KEY_S)) input.y += 1;
@@ -108,7 +98,6 @@ int main() {
 
             for(int i=1; i<entityCount; i++) {
                 if(entities[i].isActive) {
-                    // Pass PLAYER position to AI, not MOUSE
                     UpdateEntityAI(&entities[i], entities, entityCount, player->position);
                     UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
                 }
@@ -119,14 +108,11 @@ int main() {
             CleanupEntities(entities, &entityCount);
         }
 
-        // --- DRAW ---
         BeginDrawing();
             ClearBackground(RAYWHITE);
             BeginMode2D(camera);
                 DrawGame(entities, entityCount, walls, WALL_COUNT);
                 DrawParticles(&particleSystem);
-                
-                // Hover highlight
                 int hovered = -1; 
                 for (int i = 1; i < entityCount; i++) {
                     if (entities[i].isActive && !entities[i].isHeld && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }
@@ -136,7 +122,6 @@ int main() {
                     DrawRectangleLines(e.position.x-r, e.position.y-r, r*2, r*2, YELLOW);
                     DrawText("E", e.position.x-r, e.position.y-r-20, 20, YELLOW);
                 }
-                // Fusion range
                 for(int i=1; i<entityCount; i++) {
                     if(entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
                         DrawCircleLines(entities[i].position.x, entities[i].position.y, FUSION_RADIUS, Fade(GREEN, 0.5f));
@@ -150,7 +135,6 @@ int main() {
             if (IsKeyDown(KEY_TAB)) DrawElementWheel(&playerData, mouseScreen);
             else { DrawRectangle(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 60, 40, 40, GetElementColor(playerData.selectedElement)); DrawText("TAB", SCREEN_WIDTH - 55, SCREEN_HEIGHT - 45, 10, BLACK); }
             
-            // Tooltip
             int hovered2 = -1;
             for (int i = 1; i < entityCount; i++) {
                 if (entities[i].isActive && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered2 = i; break; }
