@@ -121,3 +121,5 @@ void DrawEntityTooltip(Entity* e, int x, int y);
 void DrawSpeedSlider(float* value, int x, int y);
 
 #endif
+
+

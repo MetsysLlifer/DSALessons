@@ -8,7 +8,6 @@ void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount) {
 
     for (int i = 0; i < count; i++) {
         if (entities[i].isActive) {
-            
             if (entities[i].state == STATE_RAW) {
                 DrawCircleV(entities[i].position, entities[i].size, entities[i].color);
                 DrawCircleLines(entities[i].position.x, entities[i].position.y, entities[i].size, BLACK);

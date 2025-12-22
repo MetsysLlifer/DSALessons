@@ -6,13 +6,11 @@
 const char* ElementNames[] = { "None", "Earth", "Water", "Fire", "Air" };
 
 void DrawHUD(Entity* player, Player stats) {
-    // Health Bar
     DrawRectangle(10, 10, 200, 20, DARKGRAY);
     if (player->maxHealth > 0) DrawRectangle(10, 10, (int)(200 * (player->health/player->maxHealth)), 20, RED);
     DrawRectangleLines(10, 10, 200, 20, BLACK);
     DrawText("HEALTH", 15, 12, 10, WHITE);
     
-    // Mana Bar
     DrawRectangle(10, 40, 200, 20, DARKGRAY);
     DrawText(TextFormat("MANA: %.0f", stats.mana), 10, 40, 20, BLUE);
 }
@@ -35,11 +33,9 @@ void DrawEntityTooltip(Entity* e, int x, int y) {
     else if (e->state == STATE_PROJECTILE) {
         DrawText(e->spellData.name, tx, ty, 10, YELLOW);
         
-        // Show Structure
         DrawText(TextFormat("Core: %s", ElementNames[e->spellData.core]), tx, ty+20, 10, GetElementColor(e->spellData.core));
         DrawText(TextFormat("Aux: %d", e->spellData.auxCount), tx, ty+35, 10, GRAY);
         
-        // Show Thermodynamics (Restored)
         DrawText(TextFormat("Temp: %.1f C", e->spellData.temperature), tx, ty+55, 10, (e->spellData.temperature>50)?RED:BLUE);
         DrawText(TextFormat("Dry: %.2f", e->spellData.dryness), tx, ty+70, 10, ORANGE);
         DrawText(TextFormat("Inten: %.2f", e->spellData.intensity), tx, ty+85, 10, WHITE);
@@ -72,7 +68,6 @@ void DrawElementWheel(Player* player, Vector2 mousePos) {
     }
 }
 
-// RESTORED: Draw Inventory Slots
 void DrawInventory(Inventory* inv, int x, int y) {
     int slotSize = 40;
     DrawText("INVENTORY (1-5)", x, y - 20, 10, DARKGRAY);

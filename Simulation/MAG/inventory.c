@@ -1,5 +1,4 @@
 #include "game.h"
-
 void InitInventory(Inventory* inv) {
     inv->count = 0; inv->selectedSlot = -1; 
     for(int i=0; i<INVENTORY_CAPACITY; i++) { inv->items[i].size = 0; inv->items[i].color = BLANK; }

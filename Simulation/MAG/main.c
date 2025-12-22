@@ -39,15 +39,14 @@ int main() {
 
         bool isSelecting = IsKeyDown(KEY_TAB);
         
-        // --- 1. NEW MECHANIC: TAB PLACEMENT ---
+        // 1. PLACE ELEMENT (Left Click)
         if (!isSelecting && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && entityCount < MAX_ENTITIES) {
             if (playerData.selectedElement != ELEM_NONE) {
-                // Place Raw Element
                 entities[entityCount++] = CreateRawElement(playerData.selectedElement, mouseWorld);
             }
         }
 
-        // --- 2. NEW MECHANIC: FUSION (Right Click) ---
+        // 2. FUSE (Right Click)
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
             for (int i = 1; i < entityCount; i++) {
                 if (entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
@@ -59,30 +58,28 @@ int main() {
             }
         }
 
-        // --- 3. RESTORED MECHANIC: INVENTORY ---
-        
-        // Calculate Hover
+        // 3. INVENTORY & INTERACTION
         int hovered = -1;
         for (int i = 1; i < entityCount; i++) {
             if (!entities[i].isActive || entities[i].isHeld) continue;
             if (CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }
         }
 
-        // Keys 1-5 to Select Slot
+        // Select Slot (1-5)
         for (int i = 0; i < INVENTORY_CAPACITY; i++) {
             if (IsKeyPressed(KEY_ONE + i) || IsKeyPressed(KEY_KP_1 + i)) {
                 if (i < inventory.count) inventory.selectedSlot = (inventory.selectedSlot == i) ? -1 : i;
             }
         }
 
-        // E to Pickup
+        // Pickup (E)
         if (IsKeyPressed(KEY_E) && hovered != -1) {
             if (AddItem(&inventory, entities[hovered])) {
                 entities[hovered] = entities[entityCount - 1]; entityCount--; hovered = -1;
             }
         }
 
-        // Q to Drop
+        // Drop (Q)
         if (IsKeyPressed(KEY_Q) && inventory.selectedSlot != -1) {
             Entity dropped = DropItem(&inventory, inventory.selectedSlot);
             dropped.position = mouseWorld;
@@ -91,7 +88,7 @@ int main() {
             if(entityCount < MAX_ENTITIES) entities[entityCount++] = dropped;
         }
 
-        // --- PHYSICS UPDATE ---
+        // --- UPDATE ---
         Vector2 input = {0,0};
         if (IsKeyDown(KEY_W)) input.y -= 1;
         if (IsKeyDown(KEY_S)) input.y += 1;
@@ -127,7 +124,7 @@ int main() {
                     DrawText("E", entities[hovered].position.x, entities[hovered].position.y-10, 20, YELLOW);
                 }
                 
-                // Show Fusion Radius when hovering a Raw Element
+                // Show Fusion Radius
                 for(int i=1; i<entityCount; i++) {
                     if(entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
                         DrawCircleLines(entities[i].position.x, entities[i].position.y, FUSION_RADIUS, Fade(GREEN, 0.5f));
@@ -135,7 +132,6 @@ int main() {
                 }
             EndMode2D();
 
-            // Draw Restored UI
             DrawInventory(&inventory, SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT - 80);
             DrawHUD(player, playerData);
 

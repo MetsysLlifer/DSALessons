@@ -25,10 +25,10 @@ typedef char Name[MAX_NAME];
 
 typedef enum { 
     ELEM_NONE = 0,
-    ELEM_EARTH, 
-    ELEM_WATER, 
-    ELEM_FIRE,  
-    ELEM_AIR    
+    ELEM_EARTH, // Solid
+    ELEM_WATER, // Liquid
+    ELEM_FIRE,  // Plasma
+    ELEM_AIR    // Gas
 } ElementType;
 
 typedef enum {
@@ -45,7 +45,7 @@ typedef enum {
 } SpellBehavior;
 
 // --- HYBRID SPELL STRUCT ---
-// Combines Old Stats (Temp/Dryness) with New Stats (Core/Aux)
+// Combines New Mechanics (Core/Aux) with Old Stats (Temp/Dryness)
 typedef struct {
     Name name;
     
