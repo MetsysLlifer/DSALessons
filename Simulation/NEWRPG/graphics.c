@@ -1,89 +1,155 @@
 #include "game.h"
 #include <math.h>
 
+// Helper to create deterministic "random" offsets based on ID and Index
+// This ensures the scattered pieces stay together and don't jitter uncontrollably
+float PsuedoRandom(int entityID, int index, float range) {
+    return sinf(entityID * 99.0f + index * 13.0f) * range;
+}
+
 void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount) {
     float time = GetTime();
 
+    // 1. Draw Walls
     for (int i = 0; i < wallCount; i++) {
         DrawRectangleRec(walls[i], GRAY);
         DrawRectangleLinesEx(walls[i], 2, DARKGRAY);
     }
 
+    // 2. Draw Entities
     for (int i = 0; i < count; i++) {
         Entity* e = &entities[i];
         if (!e->isActive) continue;
 
+        // Use the memory address or index as a seed for stable "randomness"
+        int seed = i; 
+
+        // --- A. RAW ELEMENT (Item on Floor) ---
         if (e->state == STATE_RAW) {
-            float r = e->size;
-            DrawRectangle(e->position.x - r, e->position.y - r, r*2, r*2, e->color);
-            DrawRectangleLines(e->position.x - r, e->position.y - r, r*2, r*2, BLACK);
+            // Draw as a small pile of 3 pieces
+            for(int k=0; k<3; k++) {
+                float offX = PsuedoRandom(seed, k, 8.0f);
+                float offY = PsuedoRandom(seed, k+10, 8.0f);
+                float r = e->size * 0.6f;
+                DrawRectangle(e->position.x + offX - r/2, e->position.y + offY - r/2, r, r, e->color);
+                DrawRectangleLines(e->position.x + offX - r/2, e->position.y + offY - r/2, r, r, BLACK);
+            }
         } 
+        
+        // --- B. ACTIVE SPELL (Scattered Cluster) ---
         else if (e->state == STATE_PROJECTILE) {
             
-            // VOID / BLACK HOLE Visual
-            if (e->spellData.behavior == SPELL_VOID) {
-                DrawCircleV(e->position, e->size + sinf(time*10)*2, BLACK);
-                DrawCircleLines(e->position.x, e->position.y, e->size + 5, PURPLE);
-            }
-            // MIDAS / GOLD Visual
-            else if (e->spellData.behavior == SPELL_MIDAS) {
-                DrawRectangle(e->position.x - e->size, e->position.y - e->size, e->size*2, e->size*2, GOLD);
-                DrawRectangleLines(e->position.x - e->size, e->position.y - e->size, e->size*2, e->size*2, YELLOW);
-            }
-            // STANDARD (Earth/Fire/Water/Air) Visuals from previous turn
-            else if (e->spellData.core == ELEM_EARTH) {
-                int rockCount = 10;
-                for(int k=0; k<rockCount; k++) {
-                    float offsetX = sinf(k * 132.0f) * (e->size * 0.8f);
-                    float offsetY = cosf(k * 91.0f) * (e->size * 0.8f);
-                    float rockSize = e->size * 0.4f;
-                    DrawRectangle(e->position.x + offsetX - rockSize/2, e->position.y + offsetY - rockSize/2, rockSize, rockSize, DARKBROWN);
-                    DrawRectangleLines(e->position.x + offsetX - rockSize/2, e->position.y + offsetY - rockSize/2, rockSize, rockSize, BLACK);
-                }
-            }
-            else if (e->spellData.core == ELEM_FIRE) {
-                int flameCount = 12;
-                for(int k=0; k<flameCount; k++) {
-                    float jitterX = sinf(time * 10.0f + k) * 5.0f;
-                    float rise = fmodf(time * 50.0f + (k * 20.0f), 20.0f);
-                    Vector2 top = { e->position.x + jitterX, e->position.y - 10.0f - rise };
-                    Vector2 left = { e->position.x - 5.0f + jitterX, e->position.y + 5.0f - rise };
-                    Vector2 right = { e->position.x + 5.0f + jitterX, e->position.y + 5.0f - rise };
-                    Color flameCol = (k%2==0) ? RED : ORANGE;
-                    flameCol.a = (unsigned char)(255 - (rise * 10.0f));
-                    DrawTriangle(top, left, right, flameCol);
-                }
-            }
-            else if (e->spellData.core == ELEM_WATER) {
-                int droplets = 8;
-                for(int k=0; k<droplets; k++) {
-                    Vector2 trailPos = Vector2Subtract(e->position, Vector2Scale(Vector2Normalize(e->velocity), k * 5.0f));
-                    trailPos.x += sinf(time * 10.0f + k) * 3.0f;
-                    float dropSize = e->size * (1.0f - (float)k/droplets);
-                    DrawCircleV(trailPos, dropSize, Fade(BLUE, 0.6f));
-                }
-            }
-            else if (e->spellData.core == ELEM_AIR) {
-                int particles = 6;
-                for(int k=0; k<particles; k++) {
-                    float angle = time * 8.0f + (k * (PI*2/particles));
-                    Vector2 orb = { cosf(angle) * e->size, sinf(angle) * e->size };
-                    DrawCircleV(Vector2Add(e->position, orb), 4.0f, SKYBLUE);
+            // 1. EARTH: DEBRIS FIELD
+            if (e->spellData.core == ELEM_EARTH || e->spellData.behavior == SPELL_MIDAS) {
+                int chunks = 8;
+                for(int k=0; k<chunks; k++) {
+                    // Orbiting heavy chunks
+                    float angle = (time * 1.0f) + (k * (PI*2/chunks));
+                    float dist = e->size * 0.8f + PsuedoRandom(seed, k, 5.0f);
+                    
+                    float offX = cosf(angle) * dist;
+                    float offY = sinf(angle) * dist;
+                    float pieceSize = e->size * 0.5f; // Smaller pieces
+                    
+                    Color c = (e->spellData.behavior == SPELL_MIDAS) ? GOLD : DARKBROWN;
+                    
+                    DrawRectangle(e->position.x + offX - pieceSize/2, e->position.y + offY - pieceSize/2, pieceSize, pieceSize, c);
+                    DrawRectangleLines(e->position.x + offX - pieceSize/2, e->position.y + offY - pieceSize/2, pieceSize, pieceSize, BLACK);
                 }
             }
             
-            // Draw Auxiliaries
+            // 2. FIRE: CHAOTIC SWARM
+            else if (e->spellData.core == ELEM_FIRE) {
+                int sparks = 15;
+                for(int k=0; k<sparks; k++) {
+                    // Jittery movement
+                    float jitterX = PsuedoRandom(seed + (int)(time*10), k, 15.0f);
+                    float jitterY = PsuedoRandom(seed + (int)(time*10), k+50, 15.0f);
+                    
+                    Vector2 pos = Vector2Add(e->position, (Vector2){jitterX, jitterY});
+                    
+                    // Triangle Shape
+                    Vector2 top = { pos.x, pos.y - 6 };
+                    Vector2 left = { pos.x - 4, pos.y + 4 };
+                    Vector2 right = { pos.x + 4, pos.y + 4 };
+                    
+                    Color c = (k%2==0) ? RED : ORANGE;
+                    DrawTriangle(top, left, right, c);
+                }
+            }
+            
+            // 3. WATER: FLUID SPRAY
+            else if (e->spellData.core == ELEM_WATER) {
+                int drops = 10;
+                for(int k=0; k<drops; k++) {
+                    // Trail behind velocity
+                    Vector2 trail = Vector2Scale(Vector2Normalize(e->velocity), -1.0f);
+                    float dist = k * 4.0f;
+                    
+                    // Wavy trail
+                    float wave = sinf(time * 15.0f + k) * 6.0f;
+                    Vector2 perp = { -trail.y, trail.x }; // Perpendicular vector
+                    
+                    Vector2 pos = Vector2Add(e->position, Vector2Scale(trail, dist));
+                    pos = Vector2Add(pos, Vector2Scale(perp, wave));
+                    
+                    float size = (e->size * 0.6f) * (1.0f - (float)k/drops);
+                    DrawCircleV(pos, size, Fade(BLUE, 0.7f));
+                }
+            }
+            
+            // 4. AIR / VOID: SWIRLING VORTEX
+            else if (e->spellData.core == ELEM_AIR || e->spellData.behavior == SPELL_VOID) {
+                int particles = 12;
+                Color baseCol = (e->spellData.behavior == SPELL_VOID) ? PURPLE : SKYBLUE;
+                
+                for(int k=0; k<particles; k++) {
+                    // Fast spin
+                    float angle = (time * 8.0f) + (k * (PI*2/particles));
+                    // Spiraling in and out
+                    float radius = e->size + sinf(time * 5.0f + k) * 5.0f;
+                    
+                    Vector2 off = { cosf(angle) * radius, sinf(angle) * radius };
+                    Vector2 pos = Vector2Add(e->position, off);
+                    
+                    DrawCircleV(pos, 3.0f, baseCol);
+                    if(e->spellData.behavior == SPELL_VOID) DrawCircleLines(pos.x, pos.y, 4.0f, BLACK);
+                }
+            }
+            
+            // 5. SPECIAL: PHANTOM / CHAIN LIGHTNING
+            if (e->spellData.behavior == SPELL_CHAIN_LIGHTNING) {
+                 // Arcs of electricity
+                 for(int k=0; k<3; k++) {
+                     Vector2 start = e->position;
+                     Vector2 end = Vector2Add(e->position, (Vector2){PsuedoRandom(seed, k, 30), PsuedoRandom(seed, k+5, 30)});
+                     DrawLineEx(start, end, 2.0f, YELLOW);
+                 }
+            }
+            
+            // --- DRAW AUXILIARY CONNECTIONS ---
+            // These connect the scattered pieces to the "Core" logic
             for(int j=0; j < e->spellData.auxCount; j++) {
-                float angle = (time * 3.0f) + (j * (PI * 2 / e->spellData.auxCount));
-                Vector2 offset = { cosf(angle)*30.0f, sinf(angle)*30.0f };
+                float angle = (time * 2.0f) + (j * (PI * 2 / e->spellData.auxCount));
+                Vector2 offset = { cosf(angle)*35.0f, sinf(angle)*35.0f };
                 Vector2 orbPos = Vector2Add(e->position, offset);
-                DrawLineEx(e->position, orbPos, 1.0f, Fade(BLACK, 0.5f));
-                DrawRectangle(orbPos.x-4, orbPos.y-4, 8, 8, GetElementColor(e->spellData.aux[j]));
+                
+                // Draw a faint line connecting the center to the aux
+                DrawLineEx(e->position, orbPos, 1.0f, Fade(BLACK, 0.3f));
+                
+                // Draw the Aux element as a small spinning square
+                DrawRectanglePro((Rectangle){orbPos.x, orbPos.y, 10, 10}, (Vector2){5,5}, time*100.0f, GetElementColor(e->spellData.aux[j]));
             }
         }
+        
+        // --- C. STATIC WALL ---
         else if (e->state == STATE_STATIC_WALL) {
+            // Draw as a solid block of bricks
             DrawRectangle(e->position.x-20, e->position.y-20, 40, 40, e->color);
             DrawRectangleLines(e->position.x-20, e->position.y-20, 40, 40, BLACK);
+            // Detail lines
+            DrawLine(e->position.x-20, e->position.y, e->position.x+20, e->position.y, BLACK);
+            DrawLine(e->position.x, e->position.y-20, e->position.x, e->position.y+20, BLACK);
         }
     }
 }

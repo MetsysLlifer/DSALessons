@@ -6,8 +6,9 @@ void SpawnExplosion(ParticleSystem* ps, Vector2 position, Color color) {
         if (!ps->particles[i].active) {
             ps->particles[i].active = true; ps->particles[i].position = position; ps->particles[i].color = color;
             ps->particles[i].size = (float)GetRandomValue(3, 8); ps->particles[i].life = 1.0f;
-            ps->particles[i].velocity = (Vector2){ (GetRandomValue(-100,100)/10.0f)*2.0f, (GetRandomValue(-100,100)/10.0f)*2.0f };
-            if (++spawned >= 50) break;
+            float speedX = (GetRandomValue(-100, 100) / 10.0f); float speedY = (GetRandomValue(-100, 100) / 10.0f);
+            ps->particles[i].velocity = (Vector2){ speedX * 2.0f, speedY * 2.0f };
+            spawned++; if (spawned >= 50) break;
         }
     }
 }

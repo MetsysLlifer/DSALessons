@@ -11,13 +11,13 @@ void CleanupEntities(Entity* entities, int* count) {
 }
 
 int main() {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Extended");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hybrid Magic - Fixed Physics");
     SetTargetFPS(60); 
 
     Entity entities[MAX_ENTITIES];
     int entityCount = 0;
 
-    // Player
+    // Player (Index 0)
     entities[entityCount++] = (Entity){
         .position = {100, 100}, .velocity = {0,0}, 
         .mass = 1.0f, .friction = 10.0f, .size = 30.0f, 
@@ -26,105 +26,98 @@ int main() {
     };
     Entity* player = &entities[0];
     Player playerData = { .selectedElement = ELEM_EARTH, .mana = 100, .maxMana = 100 };
+    
+    // Init discovery
+    for(int i=0; i<SPELL_COUNT; i++) playerData.book.discovered[i] = false;
 
     Inventory inventory = { 0 }; InitInventory(&inventory);
     ParticleSystem particleSystem; InitParticles(&particleSystem);
     Rectangle walls[WALL_COUNT] = { {200, 150, 400, 50}, {150, 150, 50, 300}, {600, 300, 50, 200} };
     Camera2D camera = { 0 }; camera.zoom = 1.0f; camera.offset = (Vector2){SCREEN_WIDTH/2, SCREEN_HEIGHT/2};
+    
+    bool showCompendium = false;
 
     while (!WindowShouldClose()) {
         Vector2 mouseScreen = GetMousePosition();
         Vector2 mouseWorld = GetScreenToWorld2D(mouseScreen, camera);
         camera.target = player->position;
-
-        bool isSelecting = IsKeyDown(KEY_TAB);
         
-        // --- 1. PLACE ---
-        if (!isSelecting && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && entityCount < MAX_ENTITIES) {
-            if (playerData.selectedElement != ELEM_NONE) {
-                entities[entityCount++] = CreateRawElement(playerData.selectedElement, mouseWorld);
-            }
-        }
+        if (IsKeyPressed(KEY_C)) showCompendium = !showCompendium;
 
-        // --- 2. FUSE ---
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+        if (!showCompendium) {
+            bool isSelecting = IsKeyDown(KEY_TAB);
+            
+            // 1. PLACE
+            if (!isSelecting && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && entityCount < MAX_ENTITIES) {
+                if (playerData.selectedElement != ELEM_NONE) {
+                    entities[entityCount++] = CreateRawElement(playerData.selectedElement, mouseWorld);
+                }
+            }
+            
+            // 2. FUSE (Launch)
+            if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                for (int i = 1; i < entityCount; i++) {
+                    if (entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
+                        PerformSpatialFusion(entities, entityCount, i, &particleSystem, &playerData);
+                        Vector2 dir = Vector2Normalize(Vector2Subtract(mouseWorld, player->position)); 
+                        entities[i].velocity = Vector2Scale(dir, entities[i].maxSpeed);
+                        break; 
+                    }
+                }
+            }
+            
+            // 3. TELEPORT
+            if (IsKeyPressed(KEY_T)) {
+                for (int i = 1; i < entityCount; i++) {
+                    if (entities[i].isActive && entities[i].spellData.isTeleport) {
+                        SpawnExplosion(&particleSystem, player->position, PURPLE);
+                        player->position = entities[i].position; player->velocity = (Vector2){0,0};
+                        SpawnExplosion(&particleSystem, player->position, ORANGE);
+                        entities[i].isActive = false; break;
+                    }
+                }
+            }
+            
+            // 4. INVENTORY
+            int hovered = -1;
             for (int i = 1; i < entityCount; i++) {
-                if (entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
-                    PerformSpatialFusion(entities, entityCount, i, &particleSystem);
-                    Vector2 dir = Vector2Normalize(Vector2Subtract(mouseWorld, player->position)); 
-                    entities[i].velocity = Vector2Scale(dir, entities[i].maxSpeed);
-                    break; 
+                if (!entities[i].isActive || entities[i].isHeld) continue;
+                if (CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }
+            }
+            for (int i = 0; i < INVENTORY_CAPACITY; i++) {
+                if (IsKeyPressed(KEY_ONE + i) || IsKeyPressed(KEY_KP_1 + i)) {
+                    if (i < inventory.count) inventory.selectedSlot = (inventory.selectedSlot == i) ? -1 : i;
                 }
             }
-        }
+            if (IsKeyPressed(KEY_E) && hovered != -1) {
+                if (AddItem(&inventory, entities[hovered])) { entities[hovered] = entities[entityCount - 1]; entityCount--; hovered = -1; }
+            }
+            if (IsKeyPressed(KEY_Q) && inventory.selectedSlot != -1) {
+                Entity dropped = DropItem(&inventory, inventory.selectedSlot);
+                dropped.position = mouseWorld; dropped.isActive = true; dropped.velocity = (Vector2){0,0}; dropped.moveForce = 0.0f; 
+                if(entityCount < MAX_ENTITIES) entities[entityCount++] = dropped;
+            }
 
-        // --- 3. TELEPORT ---
-        if (IsKeyPressed(KEY_T)) {
-            for (int i = 1; i < entityCount; i++) {
-                if (entities[i].isActive && entities[i].spellData.isTeleport) {
-                    SpawnExplosion(&particleSystem, player->position, PURPLE);
-                    player->position = entities[i].position;
-                    player->velocity = (Vector2){0,0};
-                    SpawnExplosion(&particleSystem, player->position, ORANGE);
-                    entities[i].isActive = false;
-                    break;
+            // --- UPDATES ---
+            Vector2 input = {0,0};
+            if (IsKeyDown(KEY_W)) input.y -= 1;
+            if (IsKeyDown(KEY_S)) input.y += 1;
+            if (IsKeyDown(KEY_A)) input.x -= 1;
+            if (IsKeyDown(KEY_D)) input.x += 1;
+            UpdateEntityPhysics(player, input, walls, WALL_COUNT);
+
+            for(int i=1; i<entityCount; i++) {
+                if(entities[i].isActive) {
+                    // Pass PLAYER position to AI, not MOUSE
+                    UpdateEntityAI(&entities[i], entities, entityCount, player->position);
+                    UpdateEntityPhysics(&entities[i], (Vector2){0,0}, walls, WALL_COUNT);
                 }
             }
+            ApplySpellFieldEffects(entities, entityCount, &particleSystem);
+            ResolveEntityCollisions(entities, entityCount, player, &particleSystem);
+            UpdateParticles(&particleSystem);
+            CleanupEntities(entities, &entityCount);
         }
-
-        // --- 4. INVENTORY ---
-        int hovered = -1;
-        for (int i = 1; i < entityCount; i++) {
-            if (!entities[i].isActive || entities[i].isHeld) continue;
-            if (CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }
-        }
-
-        for (int i = 0; i < INVENTORY_CAPACITY; i++) {
-            if (IsKeyPressed(KEY_ONE + i) || IsKeyPressed(KEY_KP_1 + i)) {
-                if (i < inventory.count) inventory.selectedSlot = (inventory.selectedSlot == i) ? -1 : i;
-            }
-        }
-
-        if (IsKeyPressed(KEY_E) && hovered != -1) {
-            if (AddItem(&inventory, entities[hovered])) {
-                entities[hovered] = entities[entityCount - 1]; entityCount--; hovered = -1;
-            }
-        }
-
-        if (IsKeyPressed(KEY_Q) && inventory.selectedSlot != -1) {
-            Entity dropped = DropItem(&inventory, inventory.selectedSlot);
-            dropped.position = mouseWorld;
-            dropped.isActive = true;
-            dropped.velocity = (Vector2){0,0};
-            dropped.moveForce = 0.0f; 
-            if(entityCount < MAX_ENTITIES) entities[entityCount++] = dropped;
-        }
-
-        // --- UPDATE ---
-        Vector2 input = {0,0};
-        if (IsKeyDown(KEY_W)) input.y -= 1;
-        if (IsKeyDown(KEY_S)) input.y += 1;
-        if (IsKeyDown(KEY_A)) input.x -= 1;
-        if (IsKeyDown(KEY_D)) input.x += 1;
-        
-        UpdateEntityPhysics(player, input, walls, WALL_COUNT);
-
-        for(int i=1; i<entityCount; i++) {
-            if(entities[i].isActive) {
-                Vector2 aiInput = {0,0};
-                if(entities[i].state == STATE_PROJECTILE && entities[i].spellData.hasHoming) {
-                    aiInput = Vector2Normalize(Vector2Subtract(mouseWorld, entities[i].position));
-                }
-                UpdateEntityPhysics(&entities[i], aiInput, walls, WALL_COUNT);
-            }
-        }
-
-        // NEW: Apply Field Effects (Void/Gravity)
-        ApplySpellFieldEffects(entities, entityCount, &particleSystem);
-        
-        ResolveEntityCollisions(entities, entityCount, player, &particleSystem);
-        UpdateParticles(&particleSystem);
-        CleanupEntities(entities, &entityCount);
 
         // --- DRAW ---
         BeginDrawing();
@@ -133,30 +126,38 @@ int main() {
                 DrawGame(entities, entityCount, walls, WALL_COUNT);
                 DrawParticles(&particleSystem);
                 
+                // Hover highlight
+                int hovered = -1; 
+                for (int i = 1; i < entityCount; i++) {
+                    if (entities[i].isActive && !entities[i].isHeld && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered = i; break; }
+                }
                 if (hovered != -1) {
-                    Entity e = entities[hovered];
-                    float r = e.size + 5;
+                    Entity e = entities[hovered]; float r = e.size + 5;
                     DrawRectangleLines(e.position.x-r, e.position.y-r, r*2, r*2, YELLOW);
                     DrawText("E", e.position.x-r, e.position.y-r-20, 20, YELLOW);
                 }
-                
+                // Fusion range
                 for(int i=1; i<entityCount; i++) {
                     if(entities[i].state == STATE_RAW && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) {
                         DrawCircleLines(entities[i].position.x, entities[i].position.y, FUSION_RADIUS, Fade(GREEN, 0.5f));
                     }
                 }
             EndMode2D();
-
-            DrawInventory(&inventory, SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT - 80);
-            DrawHUD(player, playerData);
-
-            if (isSelecting) DrawElementWheel(&playerData, mouseScreen);
-            else {
-                DrawRectangle(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 60, 40, 40, GetElementColor(playerData.selectedElement));
-                DrawText("TAB", SCREEN_WIDTH - 55, SCREEN_HEIGHT - 45, 10, BLACK);
-            }
             
-            if (hovered != -1) DrawEntityTooltip(&entities[hovered], mouseScreen.x, mouseScreen.y);
+            DrawInventory(&inventory, SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT - 80);
+            DrawHUD(player, &playerData);
+
+            if (IsKeyDown(KEY_TAB)) DrawElementWheel(&playerData, mouseScreen);
+            else { DrawRectangle(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 60, 40, 40, GetElementColor(playerData.selectedElement)); DrawText("TAB", SCREEN_WIDTH - 55, SCREEN_HEIGHT - 45, 10, BLACK); }
+            
+            // Tooltip
+            int hovered2 = -1;
+            for (int i = 1; i < entityCount; i++) {
+                if (entities[i].isActive && CheckCollisionPointCircle(mouseWorld, entities[i].position, entities[i].size)) { hovered2 = i; break; }
+            }
+            if (hovered2 != -1) DrawEntityTooltip(&entities[hovered2], mouseScreen.x, mouseScreen.y);
+            
+            if (showCompendium) DrawCompendium(&playerData);
 
             DrawFPS(10, 10);
         EndDrawing();

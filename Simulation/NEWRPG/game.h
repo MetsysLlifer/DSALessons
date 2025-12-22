@@ -5,6 +5,8 @@
 #include "raymath.h"
 #include <string.h> 
 #include <stdio.h>
+#include <stdlib.h> 
+#include <math.h>
 
 // --- CONSTANTS ---
 #define SCREEN_WIDTH 800
@@ -32,41 +34,67 @@ typedef enum {
 } ElementType;
 
 typedef enum {
-    STATE_RAW,          // Ingredient on floor
-    STATE_PROJECTILE,   // Active Spell
-    STATE_STATIC_WALL   // Solidified Earth/Gold
+    STATE_RAW,          
+    STATE_PROJECTILE,   
+    STATE_STATIC_WALL   
 } EntityState;
 
+// --- POWERS LIST ---
 typedef enum {
-    SPELL_PROJECTILE,
-    SPELL_WALL,         // Earth + Earth
-    SPELL_TELEKINESIS,  // Air + Air (Gravity Well)
-    SPELL_HEAL,         // Water + Any
-    SPELL_MIDAS,        // Fire + Earth (Turns things to Gold)
-    SPELL_VOID,         // Fire + 2 Air (Black Hole)
-    SPELL_SLOW          // Earth + Water (Mud/Time Stop)
+    SPELL_PROJECTILE = 0, 
+    SPELL_WALL,             
+    SPELL_TELEKINESIS,      
+    SPELL_HEAL,             
+    SPELL_MIDAS,            
+    SPELL_VOID,             
+    SPELL_SLOW,             
+    SPELL_CHAIN_LIGHTNING,  
+    SPELL_FREEZE,           
+    SPELL_VAMPIRISM,        
+    SPELL_CLUSTER,          
+    SPELL_REFLECT,          
+    SPELL_PHANTOM,          
+    SPELL_CONFUSE,          
+    SPELL_BERSERK,          
+    SPELL_NECROMANCY,       
+    SPELL_TSUNAMI,          
+    SPELL_WHIRLWIND,        
+    SPELL_MAGNET,           
+    SPELL_PETRIFY,          
+    SPELL_MIRROR,           
+    SPELL_REWIND,           
+    SPELL_POISON,           
+    SPELL_SWARM,            
+    SPELL_SNIPER,           
+    SPELL_BOUNCE,           
+    SPELL_LANDMINE,         
+    SPELL_GROWTH,           
+    SPELL_SHRINK,           
+    SPELL_COUNT 
 } SpellBehavior;
+
+typedef enum {
+    AI_NONE = 0,
+    AI_LINEAR, AI_HOMING, AI_PREDICT, AI_ORBIT, AI_FLEE, AI_SWARM, AI_ERRATIC
+} AiType;
 
 typedef struct {
     Name name;
-    
-    // Structure
     ElementType core;       
     ElementType aux[MAX_AUX]; 
     int auxCount;
-    
-    // Thermodynamics
     double temperature; 
     double intensity;   
     double dryness;     
-    
-    // Behaviors
     float power;        
-    bool hasHoming;     
-    bool hasGravity;
-    bool isTeleport;
+    AiType aiType;          
     SpellBehavior behavior;
     float manaCost;
+    
+    // --- FLAGS ---
+    bool isTeleport;
+    bool hasHoming;
+    bool hasGravity;
 } Spell;
 
 // --- ENTITY ---
@@ -76,28 +104,33 @@ typedef struct {
     float mass;           
     float friction;       
     float size;           
-    
     float maxSpeed;       
     float moveForce;      
-    
     Color color;
     float health;
     float maxHealth;
-
     EntityState state;
     Spell spellData;  
-    
     bool isActive;    
     bool isSpell;     
     bool isHeld;      
     float lifeTime; 
+    Vector2 targetPos;    
+    int targetID;         
 } Entity;
 
-// --- PLAYER ---
+// --- COMPENDIUM ---
+typedef struct {
+    bool discovered[SPELL_COUNT]; 
+    float notificationTimer;      
+    char notificationText[64];    
+} Compendium;
+
 typedef struct {
     ElementType selectedElement; 
     float mana;
     float maxMana;
+    Compendium book; 
 } Player;
 
 typedef struct { Entity items[INVENTORY_CAPACITY]; int count; int selectedSlot; } Inventory;
@@ -117,17 +150,19 @@ void DrawInventory(Inventory* inv, int x, int y);
 
 Color GetElementColor(ElementType type);
 Entity CreateRawElement(ElementType type, Vector2 pos);
-void PerformSpatialFusion(Entity* entities, int count, int coreIndex, ParticleSystem* ps);
+void PerformSpatialFusion(Entity* entities, int count, int coreIndex, ParticleSystem* ps, Player* player);
 Spell FuseSpellData(Spell A, Spell B); 
 
 void UpdateEntityPhysics(Entity* e, Vector2 inputDirection, Rectangle* walls, int wallCount);
+void UpdateEntityAI(Entity* e, Entity* entities, int count, Vector2 mouseWorld); 
 void ResolveEntityCollisions(Entity* entities, int count, Entity* player, ParticleSystem* ps); 
-void ApplySpellFieldEffects(Entity* entities, int count, ParticleSystem* ps); // NEW: Handle Void/Gravity
-void EnforceWallConstraints(Entity* entities, int count, Rectangle* walls, int wallCount);
+void ApplySpellFieldEffects(Entity* entities, int count, ParticleSystem* ps); 
 
 void DrawGame(Entity* entities, int count, Rectangle* walls, int wallCount);
 void DrawElementWheel(Player* player, Vector2 mousePos);
 void DrawEntityTooltip(Entity* e, int x, int y);
-void DrawHUD(Entity* player, Player stats); 
+// FIXED PROTOTYPE: Now takes Player* pointer
+void DrawHUD(Entity* player, Player* stats); 
+void DrawCompendium(Player* player); 
 
 #endif
