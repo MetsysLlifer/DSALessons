@@ -5,7 +5,7 @@ LDFLAGS = -L/opt/homebrew/lib -lraylib -framework IOKit -framework Cocoa -framew
 
 TARGET = game
 # Assuming your files are in the root directory or you run make from where they are
-OBJS = main.o util.o ui.o
+OBJS = main.o
 
 all: $(TARGET)
 

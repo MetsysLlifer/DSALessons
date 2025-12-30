@@ -1,14 +1,19 @@
-#include "raylib.h"
-#include "raygui.h"
+#ifndef UTIL_H
+#define UTIL_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
+
+#include "raylib.h"
+
+
 #define MAX 10
 #define SCREENWIDTH 800
 #define SCREENHEIGHT 450
 #define preX SCREENWIDTH * 0.75 // Where to start to draw the rect
-
 
 
 // (char* text, Vector2 size, Color color, Vector2 position)
@@ -34,7 +39,7 @@ typedef struct{
     int count;
 } VersionOne;
 
-// Create, Read, Update, Delete
+// Utilities
 void init(VersionOne*); // Initialize the List and set the count to -1 (Empty)
 void read(VersionOne);
 int insert(VersionOne* List, int data, Vector2 position, float* timer);
@@ -43,9 +48,11 @@ int deleteLast(VersionOne*, float* timer);
 bool member(VersionOne, int);
 int locate(VersionOne, int);
 
+// UI
 void displayElements(VersionOne List);
 void connectLine(VersionOne List); // Connect Elements from 0 to MAX - 1
 void updateHolding(VersionOne* List, ElementType** holdElement, bool* holding);
+void drawButtons(VersionOne* List, float* feedbackTimer, char* textAlert);
+void drawslots(VersionOne List);
 
-// UI
-void table(Button*);
+#endif // UTIL_H
