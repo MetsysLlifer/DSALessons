@@ -54,5 +54,7 @@ void connectLine(VersionOne List); // Connect Elements from 0 to MAX - 1
 void updateHolding(VersionOne* List, ElementType** holdElement, bool* holding);
 void drawButtons(VersionOne* List, float* feedbackTimer, char* textAlert);
 void drawslots(VersionOne List);
+void drawPanel(VersionOne* List);
+void displayElementDetails(ElementType Elem, Vector2 position, int idx);
 
 #endif // UTIL_H

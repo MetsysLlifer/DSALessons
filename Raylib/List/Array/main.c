@@ -6,7 +6,7 @@ main(void)
     // Initialization
     //--------------------------------------------------------------------------------------
 
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "List (Array)");
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Linked List (Array)");
     
     // Variables
 
@@ -53,6 +53,7 @@ main(void)
             
             drawButtons(&List, &feedbackTimer, textAlert); // mainly delete, locate, and read
             drawslots(List);
+            drawPanel(&List);
 
             // Display notfication (insertion/deletion failed)
             if(feedbackTimer > 0.0){
