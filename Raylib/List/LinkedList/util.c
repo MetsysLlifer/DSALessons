@@ -36,15 +36,3 @@ int deleteLast(LinkedList* List, float* timer)
     }
     return 1;
 }
-
-// bool member(LinkedList List, int data){
-//     LinkedList* trav = List;
-//     for(;trav != List->count && List->Elements[trav].data != data; trav++){}
-//     return(trav != List->count)? true: false;
-// }
-
-// int locate(LinkedList List, int data){
-//     int trav = 0;
-//     for(; trav < List->count && List->Elements[trav].data != data; trav++){}
-//     return(trav != List->count)? 1: -1;
-// }

@@ -34,7 +34,10 @@ void displayElements(LinkedList List){
     LinkedList trav = List;
     for(; trav != NULL; trav = trav->next){
         ElementType element = trav->Element;
-        DrawCircle(element.position.x, element.position.y, element.size, element.color);
+        DrawRectangle(element.position.x - element.size, element.position.y - element.size, element.size * 2, element.size * 2, element.color);
+        // Draw Nex Pointer
+        DrawRectangleLines(element.position.x + element.size, element.position.y - element.size, element.size * 2, element.size * 2, DARKGRAY);
+        DrawCircle(element.position.x + (element.size * 2), element.position.y, 3, DARKGRAY);
     }
 }
 
@@ -45,7 +48,7 @@ void connectLine(LinkedList List){
         ElementType A = trav->Element;
         if(trav->next != NULL){
             ElementType B = trav->next->Element;
-            DrawLine(A.position.x, A.position.y, B.position.x, B.position.y, (Color){100, 50, 200, 100});
+            DrawLine(A.position.x + (A.size * 2), A.position.y, B.position.x + (B.size * 2), B.position.y, (Color){100, 50, 200, 100});
         }
     }
 }
