@@ -6,14 +6,14 @@ main(void)
     // Initialization
     //--------------------------------------------------------------------------------------
 
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "List (Array)");
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Linked List (Array)");
     
     // Variables
 
-    float feedbackTimer = 0.0;  // To track timer for "insertion/deletion failed"
+    float feedbackTimer = 0.0;  // To track timer for "deletion failed"
     char textAlert[50] = "";    // 
 
-    VersionOne List;
+    LinkedList List;
     init(&List);
     
     // Flags
@@ -52,7 +52,7 @@ main(void)
             updateHolding(&List, &holdElement, &holding);
             
             drawButtons(&List, &feedbackTimer, textAlert); // mainly delete, locate, and read
-            drawslots(List);
+            // drawslots(List);
             drawPanel(&List);
 
             // Display notfication (insertion/deletion failed)
@@ -61,9 +61,9 @@ main(void)
                 DrawText(textAlert, 10, 50, 30, RED);
             }
 
-            DrawText("List (Array)", 10, 10, 20, LIGHTGRAY);
-            DrawText(TextFormat("MAX NODES: %d", MAX), 10, 30, 10, GRAY);
-        
+            DrawText("LINKED LIST (Array)", 10, 10, 20, LIGHTGRAY);
+            DrawText("MAX NODES: ALMOST INFINITE", 10, 30, 10, GRAY);
+            DrawFPS(SCREENWIDTH * 0.9, 10);
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
