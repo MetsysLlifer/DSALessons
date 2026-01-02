@@ -38,18 +38,25 @@ void drawVirtualHeap(VirtualHeap VH){
 }
 
 void linkConnect(VirtualHeap VH, List L){
+
+    DrawCircle((cellPos.x+(recWidth/2)+linkSize.x), cellPos.y+(L*cPad)+(recHeight/2), 5, (Color){ 102, 191, 255, 150 });
+
     for(int trav = L; trav != -1; trav = VH.Nodes[trav].link){
-        if(VH.Nodes[trav].link != -1 && VH.Nodes[trav].elem.data != 0) {
+        // Check for valid node and draw a spline
+        if(trav != -1 && VH.Nodes[trav].link != -1) {
             int targetIdx = VH.Nodes[trav].link;
+
+            // 1st point (current node)
             Vector2 linkPos = {cellPos.x+(recWidth/2), cellPos.y+(trav*cPad)};
-
-
             Vector2 start = {linkPos.x+linkSize.x+fPad, linkPos.y+(recHeight / 2)};
-            Vector2 end = { cellPos.x+recWidth, linkPos.y+(targetIdx * cPad)+(recHeight / 2) };
-            float distance = abs(targetIdx - trav);
 
+            // Last point (target node)
+            Vector2 end = { cellPos.x+recWidth, cellPos.y+(targetIdx * cPad)+(recHeight / 2) };
+
+            // Control point (curvature)
+            float distance = abs(targetIdx - trav);
             Vector2 control = { 
-                cellPos.x + recWidth + (distance * 30), // Pulls the curve to the right
+                cellPos.x + recWidth + (distance * cPad), // Pulls the curve to the right
                 (start.y + end.y) / 2              // Midway vertically
             };
 
