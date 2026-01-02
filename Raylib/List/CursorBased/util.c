@@ -48,8 +48,9 @@ void Delete(List *L, VirtualHeap *VH, Data data){
 void initVH(VirtualHeap *VH){
     VH->avail = 0;
 
-    for(int trav = 1; trav < MAX; trav++){
-        VH->Nodes[trav - 1].link = trav;
+    for(int trav = 1; trav <= MAX; trav++){
+        VH->Nodes[trav-1].link = trav;
+        VH->Nodes[trav-1].elem.data = 0;
     }
 
     VH->Nodes[MAX-1].link = -1;

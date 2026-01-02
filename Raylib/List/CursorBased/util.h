@@ -48,5 +48,6 @@ void freeVH(VirtualHeap*, int index);
 // UI
 void drawVirtualHeap(VirtualHeap VH);
 void drawList(List L);
+void linkConnect(VirtualHeap VH, List L);
 
 #endif // UTIL_H
