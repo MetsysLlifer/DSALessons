@@ -13,13 +13,6 @@ main(void)
     init(&L);
     initVH(&VH);
 
-    // Define your control points
-    Vector2 points[] = {
-        { SCREENWIDTH * 0.1, SCREENHEIGHT * 0.5 },
-        { SCREENWIDTH * 0.2, SCREENHEIGHT * 0.6 },
-        { SCREENWIDTH * 0.1, SCREENHEIGHT * 0.7 },
-    };
-
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
     SetExitKey(KEY_NULL);

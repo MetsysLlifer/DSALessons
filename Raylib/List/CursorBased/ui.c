@@ -56,6 +56,8 @@ void drawVirtualHeap(VirtualHeap VH){
 
 // Draw spline from node
 void linkConnect(VirtualHeap VH, List L){
+    // Position of List is manually set (check drawList function to get the current position)
+    if(L != -1) DrawLineEx((Vector2){SCREENWIDTH * 0.2 + 50, SCREENHEIGHT * 0.47 + (30/2)}, (Vector2){cellPos.x,  cellPos.y+(L * cPad)+(recHeight / 2)}, 2, SKYBLUE);
 
     // Count the total number of nodes in the List
     // To add dynamic color for splines
@@ -121,5 +123,8 @@ void linkConnect(VirtualHeap VH, List L){
 }
 
 void drawList(List L){
-    DrawRectangle(SCREENWIDTH * 0.2, SCREENHEIGHT * 0.47, 50, 30, LIGHTGRAY);
+    Vector2 listPos = {SCREENWIDTH * 0.2, SCREENHEIGHT * 0.47};
+    Vector2 listSize = {50, 30};
+    DrawRectangle(listPos.x, listPos.y, listSize.x, listSize.y, LIGHTGRAY);
+    DrawText(TextFormat("%d", L), listPos.x + (listSize.x/2) - 3, listPos.y + (linkSize.y/2), 11, BLACK);
 }  
